@@ -1,35 +1,72 @@
 package com.example.movierating
 
 import android.os.Bundle
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
-import androidx.navigation.ui.setupWithNavController
-import com.example.movierating.databinding.ActivityMainBinding
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.example.movierating.ui.theme.MovieRatingTheme
+import androidx.navigation.compose.rememberNavController
+import com.example.movierating.ui.BottomNavigationBar
+import com.example.movierating.ui.home.HomePage
+import com.example.movierating.ui.profile.ProfilePage
+import com.example.movierating.ui.rate.RatePage
+import com.example.movierating.ui.search.SearchPage
 
-class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
-
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            val navController = rememberNavController()
+            MovieRatingTheme {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        BottomNavigationBar(navController = navController)
+                    }
+                ) { innerPadding ->
+                    NavHost(navController = navController, startDestination = "home") {
+                        composable("home") {
+                            HomePage(modifier = Modifier.padding(innerPadding))
+                        }
+                        composable("rate") {
+                            RatePage(modifier = Modifier.padding(innerPadding))
+                        }
+                        composable("search") {
+                            SearchPage(modifier = Modifier.padding(innerPadding))
+                        }
+                        composable("profile") {
+                            ProfilePage(modifier = Modifier.padding(innerPadding))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+@Composable
+fun Greeting(name: String, modifier: Modifier = Modifier) {
+    Text(
+        text = "Hello $name!",
+        modifier = modifier
+    )
+}
 
-        val navView: BottomNavigationView = binding.navView
-
-        val navController = findNavController(R.id.nav_host_fragment_activity_main)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        val appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.navigation_home, R.id.navigation_rate, R.id.navigation_search, R.id.navigation_profile
-            )
-        )
-        setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
+@Preview(showBackground = true)
+@Composable
+fun GreetingPreview() {
+    MovieRatingTheme {
+        Greeting("Android")
     }
 }
