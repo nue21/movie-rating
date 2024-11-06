@@ -1,1 +1,16 @@
-/build
+# Gradle
+.gradle/
+build/
+**/build/
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# 기타 Android 및 OS 특정 파일
+/local.properties
+/.vscode/
+*.log
+.DS_Store
