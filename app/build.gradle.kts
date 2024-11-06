@@ -71,7 +71,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     // navigation
     implementation("androidx.navigation:navigation-compose:2.8.2")
-
     implementation("androidx.compose.material:material:1.7.5")
     implementation(kotlin("script-runtime"))
+
+    // image
+    implementation("io.coil-kt:coil-compose:2.4.0")
 }
