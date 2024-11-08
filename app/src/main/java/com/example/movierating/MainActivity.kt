@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
 import com.example.movierating.ui.profile.ProfilePage
+import com.example.movierating.ui.rate.CommentPage
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
 

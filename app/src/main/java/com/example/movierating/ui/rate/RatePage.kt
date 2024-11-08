@@ -39,7 +39,8 @@ import com.example.movierating.R
 data class Movie(
     val posterUrl: String,
     val title: String,
-    val info: String
+    val info: String,
+    val comment: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,12 +49,12 @@ fun RatePage(
     modifier: Modifier = Modifier
 ) {
     val movies = listOf(
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/55/tn_DPK022735.jpg", "오드리", "2024 1시간 15분"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/51/tn_DPF029805.jpg", "프로이드의 라스트 세션", "2024 1시간 15분"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/50/tn_DPF029783.jpg", "10 라이브즈", "2024 1시간 15분"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/46/tn_DPF029705.jpg", "굿 바이 크루얼 월드", "2024 1시간 15분"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/43/tn_DPF029352.jpg", "키타로 탄생", "2024 1시간 15분"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/37/tn_DPF029035.jpg", "사랑은 비", "2024 1시간 15분")
+        Movie("http://file.koreafilm.or.kr/thm/02/99/18/55/tn_DPK022735.jpg", "오드리", "2024 1시간 15분", "오드리 재밌다 (아직 안봄)"),
+        Movie("http://file.koreafilm.or.kr/thm/02/99/18/51/tn_DPF029805.jpg", "프로이드의 라스트 세션", "2024 1시간 15분", "에고 이드 초에고 프로이트 화이팅"),
+        Movie("http://file.koreafilm.or.kr/thm/02/99/18/50/tn_DPF029783.jpg", "10 라이브즈", "2024 1시간 15분", "나도 목숨 10개 가지고 싶다. 하나 주라."),
+        Movie("http://file.koreafilm.or.kr/thm/02/99/18/46/tn_DPF029705.jpg", "굿 바이 크루얼 월드", "2024 1시간 15분", "잔인한 세상 미워\n 행복했으면 좋겠다."),
+        Movie("http://file.koreafilm.or.kr/thm/02/99/18/43/tn_DPF029352.jpg", "키타로 탄생", "2024 1시간 15분", "복숭아동자 리메이크"),
+        Movie("http://file.koreafilm.or.kr/thm/02/99/18/37/tn_DPF029035.jpg", "사랑은 비", "2024 1시간 15분", "가뭄")
     )
 
     Scaffold(
