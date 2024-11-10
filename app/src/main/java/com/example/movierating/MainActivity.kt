@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                             HomePage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("rate") {
-                            RatePage(modifier = Modifier.padding(innerPadding))
+                            CommentPage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("search") {
                             SearchPage(modifier = Modifier.padding(innerPadding))

@@ -1,13 +1,11 @@
 package com.example.movierating.ui.rate
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,7 +17,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,11 +30,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.movierating.R
@@ -90,6 +98,7 @@ fun CommentPage(
                 style = typography.displayMedium,
                 fontSize = 30.sp
             )
+            MenuButton()
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -107,6 +116,76 @@ fun CommentPage(
         }
     }
 }
+
+@Composable
+fun MenuButton() {
+    var expanded by remember { mutableStateOf(false) }
+    var sortOption by remember { mutableStateOf("최근 저장 순")}
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            colors = ButtonDefaults.buttonColors(Color.LightGray),
+            shape = RectangleShape,
+            onClick = { expanded = true }
+        ) {
+            Text(text = sortOption)
+        }
+        DropdownMenu(
+            modifier = Modifier.fillMaxWidth(),
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                DropdownMenuItem(
+                    onClick = {
+                        expanded = false
+                        sortOption = "최근 저장 순" },
+                    text = { Text(text = "최근 저장 순",
+                            modifier = Modifier.fillMaxWidth(), // 전체 너비를 채워서 가운데 정렬
+                            textAlign = TextAlign.Center)
+                    }
+                )
+                DropdownMenuItem(
+                    onClick = {
+                        expanded = false
+                        sortOption = "별점 높은 순" },
+                    text = { Text(text = "별점 높은 순",
+                        modifier = Modifier.fillMaxWidth(), // 전체 너비를 채워서 가운데 정렬
+                        textAlign = TextAlign.Center)
+                    }
+                )
+                DropdownMenuItem(
+                    onClick = {
+                        expanded = false
+                        sortOption = "별점 낮은 순" },
+                    text = { Text(text = "별점 낮은 순",
+                        modifier = Modifier.fillMaxWidth(), // 전체 너비를 채워서 가운데 정렬
+                        textAlign = TextAlign.Center)
+                    }
+                )
+                DropdownMenuItem(
+                    onClick = {
+                        expanded = false
+                        sortOption = "개봉 일자 순" },
+                    text = { Text(text = "개봉 일자 순",
+                        modifier = Modifier.fillMaxWidth(), // 전체 너비를 채워서 가운데 정렬
+                        textAlign = TextAlign.Center)
+                    }
+                )
+            }
+
+        }
+    }
+}
+
+
 
 @Composable
 fun MovieCommentCard(
