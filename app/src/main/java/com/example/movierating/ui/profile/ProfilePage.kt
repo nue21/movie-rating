@@ -23,10 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @Composable
 fun ProfilePage (
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavController,
 ) {
     Column (
         modifier = modifier.fillMaxSize(),
@@ -76,7 +78,7 @@ fun ProfilePage (
             horizontalArrangement = Arrangement.SpaceEvenly
         ){
             Button(onClick = {}) { Text(text = "평가") }
-            Button(onClick = {}) { Text(text = "보고싶어요") }
+            Button(onClick = {navController.navigate("like")}) { Text(text = "보고싶어요") }
             Button(onClick = {}) { Text(text = "컬렉션") }
         }
     }

@@ -29,15 +29,15 @@ import com.example.movierating.R
 
 @Composable
 fun MovieInfo(modifier: Modifier = Modifier){
+    val movieImgUrls = arrayOf(
+        "http://file.koreafilm.or.kr/thm/02/99/18/55/tn_DPK022735.jpg",
+        "http://file.koreafilm.or.kr/thm/02/99/18/51/tn_DPF029805.jpg",
+        "http://file.koreafilm.or.kr/thm/02/99/18/50/tn_DPF029783.jpg",
+        "http://file.koreafilm.or.kr/thm/02/99/18/46/tn_DPF029705.jpg",
+        "http://file.koreafilm.or.kr/thm/02/99/18/43/tn_DPF029352.jpg",
+        "http://file.koreafilm.or.kr/thm/02/99/18/37/tn_DPF029035.jpg"
+    )
     Column(modifier = modifier.fillMaxSize()) {
-        val movieImgUrls = arrayOf(
-            "http://file.koreafilm.or.kr/thm/02/99/18/55/tn_DPK022735.jpg",
-            "http://file.koreafilm.or.kr/thm/02/99/18/51/tn_DPF029805.jpg",
-            "http://file.koreafilm.or.kr/thm/02/99/18/50/tn_DPF029783.jpg",
-            "http://file.koreafilm.or.kr/thm/02/99/18/46/tn_DPF029705.jpg",
-            "http://file.koreafilm.or.kr/thm/02/99/18/43/tn_DPF029352.jpg",
-            "http://file.koreafilm.or.kr/thm/02/99/18/37/tn_DPF029035.jpg"
-        )
         TopAppBar(
             title = {},
             navigationIcon = {
