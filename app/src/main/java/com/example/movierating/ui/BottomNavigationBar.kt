@@ -19,7 +19,7 @@ fun BottomNavigationBar(navController: NavController) {
         items.forEach { screen ->
             BottomNavigationItem(
                 icon = { },
-                label = { Text(screen.capitalize()) },
+                label = { Text(screen) },
                 selected = currentRoute == screen,
                 onClick = {
                     navController.navigate(screen) {
