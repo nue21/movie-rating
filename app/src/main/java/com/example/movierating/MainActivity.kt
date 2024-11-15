@@ -22,6 +22,7 @@ import com.example.movierating.ui.home.HomePage
 import com.example.movierating.ui.movieInfo.MovieInfo
 import com.example.movierating.ui.profile.LikePage
 import com.example.movierating.ui.profile.ProfilePage
+import com.example.movierating.ui.rate.CommentPage
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
 import com.example.movierating.ui.search.SearchResultPage
@@ -50,7 +51,7 @@ class MainActivity : ComponentActivity() {
                             HomePage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("rate") {
-                            RatePage(modifier = Modifier.padding(innerPadding))
+                            CommentPage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("search") {
                             SearchPage(
