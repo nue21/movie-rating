@@ -1,5 +1,6 @@
 package com.example.movierating
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,16 +12,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
+import com.example.movierating.ui.movieInfo.MovieInfo
+import com.example.movierating.ui.profile.LikePage
 import com.example.movierating.ui.profile.ProfilePage
 import com.example.movierating.ui.rate.CommentPage
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
+import com.example.movierating.ui.search.SearchResultPage
+import com.example.movierating.ui.search.SearchViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -28,8 +34,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val navController = rememberNavController()
             MovieRatingTheme {
+                val navController = rememberNavController()
+
+                val searchViewModel = viewModel<SearchViewModel>()
+                searchViewModel.setSharedPreferences(this)
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
@@ -44,10 +54,27 @@ class MainActivity : ComponentActivity() {
                             CommentPage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("search") {
-                            SearchPage(modifier = Modifier.padding(innerPadding))
+                            SearchPage(
+                                modifier = Modifier.padding(innerPadding),
+                                searchViewModel,
+                                goToResultPage = { navController.navigate("searchResult") }
+                            )
                         }
                         composable("profile") {
-                            ProfilePage(modifier = Modifier.padding(innerPadding))
+                            ProfilePage(modifier = Modifier.padding(innerPadding), navController = navController)
+                        }
+                        composable(route = "info") {
+                            MovieInfo(modifier = Modifier.padding(innerPadding))
+                        }
+                        composable(route = "like") {
+                            LikePage(modifier = Modifier.padding(innerPadding))
+                        }
+                        composable("searchResult") {
+                            SearchResultPage(
+                                modifier = Modifier.padding(innerPadding),
+                                searchViewModel,
+                                backToSearchPage = { navController.navigateUp() }
+                            )
                         }
                     }
                 }
