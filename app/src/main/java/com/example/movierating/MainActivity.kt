@@ -19,6 +19,8 @@ import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
+import com.example.movierating.ui.movieInfo.MovieInfo
+import com.example.movierating.ui.profile.LikePage
 import com.example.movierating.ui.profile.ProfilePage
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
@@ -58,7 +60,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("profile") {
-                            ProfilePage(modifier = Modifier.padding(innerPadding))
+                            ProfilePage(modifier = Modifier.padding(innerPadding), navController = navController)
+                        }
+                        composable(route = "info") {
+                            MovieInfo(modifier = Modifier.padding(innerPadding))
+                        }
+                        composable(route = "like") {
+                            LikePage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("searchResult") {
                             SearchResultPage(
