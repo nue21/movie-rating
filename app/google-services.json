@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "135071506530",
+    "project_id": "movierating-d7735",
+    "storage_bucket": "movierating-d7735.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:135071506530:android:43a4aba9a534c9dffd313b",
+        "android_client_info": {
+          "package_name": "com.example.movierating"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADmnckwlyv2yzqBmh9HjpLAM_kZiTbppU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
