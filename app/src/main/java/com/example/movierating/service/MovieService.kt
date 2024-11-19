@@ -1,11 +1,15 @@
 package com.example.movierating.service
 
+import android.util.Log
 import com.example.movierating.data.Movie
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStream
+import java.io.InputStreamReader
 
 class MovieService() {
     private val gson = Gson()
@@ -13,7 +17,6 @@ class MovieService() {
 
     // JSON 안 Result 속 영화 정보들 -> Movie 객체 List 로 변환
     fun parseMoviesFromJson(json: String): List<Movie> {
-        val gson = Gson()
         val result = mutableListOf<Movie>()
 
         // JSON 파싱 시작
@@ -30,30 +33,36 @@ class MovieService() {
                 val resultObject = resultElement.asJsonObject
 
                 // Movie 데이터 클래스에 필요한 정보 추출
-                val docId = resultObject.get("DOCID").asString
-                val title = resultObject.get("title").asString
-                val nation = resultObject.get("nation").asString
+                val docId = resultObject.get("DOCID")?.asString ?: ""
+                val title = resultObject.get("title")?.asString ?: ""
+                val nation = resultObject.get("nation")?.asString ?: ""
 
                 // directors 필드: 감독 이름만 추출
                 val directors = resultObject.getAsJsonObject("directors")
-                    .getAsJsonArray("director")
-                    .map { it.asJsonObject.get("directorNm").asString }
+                    ?.getAsJsonArray("director")?.map {
+                        it.asJsonObject.get("directorNm")?.asString ?: ""
+                    } ?: emptyList() // directors가 없으면 빈 리스트
 
                 // actors 필드: 배우 이름만 추출
                 val actors = resultObject.getAsJsonObject("actors")
-                    .getAsJsonArray("actor")
-                    .map { it.asJsonObject.get("actorNm").asString }
+                    ?.getAsJsonArray("actor")?.map {
+                        it.asJsonObject.get("actorNm")?.asString ?: ""
+                    } ?: emptyList() // actors가 없으면 빈 리스트
 
                 // plots 필드: plotText만 추출
                 val plots = resultObject.getAsJsonObject("plots")
-                    .getAsJsonArray("plot")
-                    .map { it.asJsonObject.get("plotText").asString }
+                    ?.getAsJsonArray("plot")?.map {
+                        it.asJsonObject.get("plotText")?.asString ?: ""
+                    } ?: emptyList() // plots가 없으면 빈 리스트
 
                 // 기타 필드
-                val runtime = resultObject.get("runtime")?.asString
-                val rating = resultObject.get("rating")?.asString
-                val genre = resultObject.get("genre")?.asString
+                val runtime = resultObject.get("runtime")?.asString ?: ""
+                val rating = resultObject.get("rating")?.asString ?: ""
+                val genre = resultObject.get("genre")?.asString ?: ""
+
+                // posters 필드: 첫 번째 URL만 추출
                 val posters = resultObject.get("posters")?.asString
+                    ?.split("|")?.firstOrNull() ?: ""
 
                 // Movie 객체 생성 및 리스트에 추가
                 result.add(
@@ -74,29 +83,40 @@ class MovieService() {
         }
         return result
     }
-    // Firestore에 Movie 데이터 저장
+
     fun saveMoviesToFirestore(movies: List<Movie>) {
         movies.forEach { movie ->
+            // Movie 객체에서 Map으로 변환
+            val formatedMovie = movie.toMap()
+
             // Firestore에 컬렉션 생성 (movies) 및 Document 추가
-            db.collection("movies").add(movie)
-                .addOnSuccessListener { documentReference ->
-                    println("DocumentSnapshot added with ID: ${documentReference.id}")
+            db.collection("movies").document(movie.DOCID)
+                .set(formatedMovie)
+                .addOnSuccessListener {
+                    Log.d("firestore upload success","DocumentSnapshot successfully written!")
                 }
                 .addOnFailureListener { e ->
-                    println("Error adding document: $e")
+                    Log.d("firestore upload fail","Error adding document: $e")
                 }
         }
     }
 
-    fun readFile(filePath: String): String {
-        // 파일 경로로부터 텍스트를 읽어 String으로 반환
-        val file = File(filePath)
+    fun readFile(inputStream: InputStream): String {
+        val reader = BufferedReader(InputStreamReader(inputStream))
+        val stringBuilder = StringBuilder()
+        var line: String?
 
-        return if (file.exists()) {
-            file.readText() // 파일의 모든 내용을 읽어서 String으로 반환
-        } else {
-            "File not found" // 파일이 존재하지 않으면 오류 메시지 반환
+        try {
+            while (reader.readLine().also { line = it } != null) {
+                stringBuilder.append(line).append("\n")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            reader.close()
         }
+
+        return stringBuilder.toString()
     }
 
 }
