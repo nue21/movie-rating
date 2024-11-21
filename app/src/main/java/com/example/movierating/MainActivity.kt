@@ -2,6 +2,7 @@ package com.example.movierating
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
+import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
 import com.example.movierating.ui.movieInfo.MovieInfo
@@ -39,6 +41,13 @@ class MainActivity : ComponentActivity() {
 
                 val searchViewModel = viewModel<SearchViewModel>()
                 searchViewModel.setSharedPreferences(this)
+
+                /* 파이어스토어에 영화 데이터 저장
+                val movieService = MovieService()
+                val inputStream = resources.openRawResource(R.raw.movie_2024)
+                val json = movieService.readFile(inputStream)
+                val data = movieService.parseMoviesFromJson(json)
+                movieService.saveMoviesToFirestore(data)*/
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
