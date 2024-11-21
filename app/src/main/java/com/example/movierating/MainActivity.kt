@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             HomePage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("rate") {
-                            CommentPage(modifier = Modifier.padding(innerPadding))
+                            MovieInfo(modifier = Modifier.padding(innerPadding))
                         }
                         composable("search") {
                             SearchPage(
