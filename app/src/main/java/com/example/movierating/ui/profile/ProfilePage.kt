@@ -178,7 +178,7 @@ suspend fun fetchMoviesFromFirestore(): List<Movie> {
 fun RatingTabContent() {
     val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
     val isLoading = remember { mutableStateOf(true) }
-    val showComments = remember { mutableStateOf(true) } // 코멘트 표시 여부
+    val showComments = remember { mutableStateOf(true) } // 코멘트 표시 여부입니다
     val coroutineScope = rememberCoroutineScope()
 
     // 데이터 로드: Firestore에서 영화 데이터를 가져옴

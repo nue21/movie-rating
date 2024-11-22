@@ -11,6 +11,8 @@ data class Movie(
     val rating: String? = null,
     val genre: String? = null,
     val posters: String? = null
+
+    // prodYear 추가 예정
 ) {
     // Movie 객체를 Map으로 변환
     fun toMap(): Map<String, Any?> {
