@@ -22,8 +22,8 @@ import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
 import com.example.movierating.ui.movieInfo.MovieInfo
-import com.example.movierating.ui.profile.LikePage
 import com.example.movierating.ui.profile.ProfilePage
+import com.example.movierating.ui.profile.WatchlistPage
 import com.example.movierating.ui.rate.CommentPage
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             HomePage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("rate") {
-                            MovieInfo(modifier = Modifier.padding(innerPadding))
+                            CommentPage(modifier = Modifier.padding(innerPadding))
                         }
                         composable("search") {
                             SearchPage(
@@ -75,9 +75,6 @@ class MainActivity : ComponentActivity() {
                         composable(route = "info") {
                             MovieInfo(modifier = Modifier.padding(innerPadding))
                         }
-                        composable(route = "like") {
-                            LikePage(modifier = Modifier.padding(innerPadding))
-                        }
                         composable("searchResult") {
                             SearchResultPage(
                                 modifier = Modifier.padding(innerPadding),
@@ -85,6 +82,7 @@ class MainActivity : ComponentActivity() {
                                 backToSearchPage = { navController.navigateUp() }
                             )
                         }
+                        composable("watchlist") { WatchlistPage() }
                     }
                 }
             }
