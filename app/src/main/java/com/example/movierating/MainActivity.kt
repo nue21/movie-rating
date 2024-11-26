@@ -21,9 +21,11 @@ import androidx.navigation.compose.rememberNavController
 import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
+import com.example.movierating.ui.movieInfo.AddCommentPage
 import com.example.movierating.ui.movieInfo.MovieInfo
 import com.example.movierating.ui.profile.LikePage
 import com.example.movierating.ui.profile.ProfilePage
+import com.example.movierating.ui.profile.SelectedCollection
 import com.example.movierating.ui.rate.CommentPage
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
@@ -57,7 +59,8 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     NavHost(navController = navController, startDestination = "home") {
                         composable("home") {
-                            HomePage(modifier = Modifier.padding(innerPadding))
+                            //HomePage(modifier = Modifier.padding(innerPadding))
+                            AddCommentPage(navController = navController, modifier = Modifier.padding(innerPadding))
                         }
                         composable("rate") {
                             CommentPage(modifier = Modifier.padding(innerPadding))
@@ -83,6 +86,12 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.padding(innerPadding),
                                 searchViewModel,
                                 backToSearchPage = { navController.navigateUp() }
+                            )
+                        }
+                        composable("collection"){
+                            SelectedCollection(
+                                modifier = Modifier.padding(innerPadding),
+                                navController = navController
                             )
                         }
                     }

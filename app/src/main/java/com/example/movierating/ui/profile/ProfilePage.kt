@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,6 +27,8 @@ import androidx.compose.material.TabRowDefaults.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,6 +36,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,7 +110,7 @@ fun ProfilePage(
                     fontSize = 15.sp
                 )
             }
-            Spacer(modifier = Modifier.weight(1f)) // 가변 공간 확보
+            Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.Default.Settings,
@@ -114,16 +120,15 @@ fun ProfilePage(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp)) // 프로필 정보와 TabRow 사이 간격
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Tab 화면 섹션
-        TabScreen()
+        TabScreen(navController = navController)
     }
 }
 
 
 @Composable
-fun TabScreen() {
+fun TabScreen(navController: NavController) {
     val tabTitles = listOf("평가", "보고싶어요", "컬렉션")
     var selectedTabIndex by remember { mutableStateOf(0) }
 
@@ -132,7 +137,6 @@ fun TabScreen() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // TabRow 영역 (IntrinsicSize 제거, 중앙 정렬 유지)
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 modifier = Modifier.fillMaxWidth() // 화면 너비에 맞춤
@@ -157,7 +161,7 @@ fun TabScreen() {
             when (selectedTabIndex) {
                 0 -> RatingTabContent() // 평가 화면
                 1 -> WatchlistTabContent() // 보고싶어요 화면
-                2 -> CollectionTabContent()
+                2 -> CollectionTabContent(navController = navController)
             }
         }
     }
@@ -168,9 +172,8 @@ suspend fun fetchMoviesFromFirestore(): List<Movie> {
     val moviesRef = db.collection("movies") // 'movies' 컬렉션 참조
 
     return try {
-        // Firestore에서 데이터를 가져와서 Movie 객체 리스트로 변환
-        val querySnapshot = moviesRef.get().await() // 비동기 호출
-        querySnapshot.documents.mapNotNull { document ->
+        val querySnapshot = moviesRef.get().await() // 비동기 호출. querySnapshot에는 movies 컬렉션에서 받아온 정보가 담김
+        querySnapshot.documents.mapNotNull { document ->    // querySnapshot.documents => document의 리스트 처럼 작동
             document.toObject(Movie::class.java) // Movie 데이터 클래스로 변환
         }
     } catch (exception: Exception) {
@@ -179,79 +182,7 @@ suspend fun fetchMoviesFromFirestore(): List<Movie> {
     }
 }
 
-@Composable
-fun RatingTabContent() {
-    val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
-    val isLoading = remember { mutableStateOf(true) }
-    val showComments = remember { mutableStateOf(true) } // 코멘트 표시 여부입니다
-    val coroutineScope = rememberCoroutineScope()
-
-    // 데이터 로드: Firestore에서 영화 데이터를 가져옴
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            val fetchedMovies = fetchMoviesFromFirestore() // Firestore에서 영화 목록 가져오기
-            movies.value = fetchedMovies
-            isLoading.value = false // 데이터 로드 완료 후 로딩 상태 해제
-        }
-    }
-
-    // 로딩 상태일 때 로딩 인디케이터 표시
-    if (isLoading.value) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator() // 로딩 중 표시
-        }
-    } else {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // 버튼 섹션
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(
-                    onClick = { showComments.value = !showComments.value }, // 코멘트 표시 토글
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
-                ) {
-                    Text(
-                        text = if (showComments.value) "별점만" else "코멘트 보기",
-                    )
-                }
-
-
-                Button(
-                    onClick = { /* 정렬 관련 로직 추가 */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
-                ){
-                    Text(
-                        text = "최근 작성 순",
-                    )
-                }
-            }
-
-            // 영화 목록 표시
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(movies.value) { movie ->
-                    // 별점 상태를 별도로 관리
-                    var rating by remember { mutableStateOf(0f) }
-
-                    MovieCard(
-                        movie = movie,
-                        rating = rating,
-                        showComments = showComments.value, // 코멘트 표시 여부 전달
-                        onRatingChanged = { newRating ->
-                            rating = newRating
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
+// 영화 포스터, 별점, 코멘트가 담긴 카드
 @Composable
 fun MovieCard(
     movie: Movie,
@@ -272,38 +203,34 @@ fun MovieCard(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // 영화 기본 정보 영역
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp), // 패딩 조정
+                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                MovieImage(imageUrl = movie.posters ?: "") // 포스터 이미지
+                MovieImage(imageUrl = movie.posters ?: "")
 
-                Spacer(modifier = Modifier.width(16.dp)) // 이미지와 텍스트 간격
+                Spacer(modifier = Modifier.width(16.dp))
 
                 Column(
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.weight(1f) // 남은 공간 채우기
+                    modifier = Modifier.weight(1f)
                 ) {
-                    // 영화 제목
                     Text(
                         text = movie.title,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp // 폰트 크기 조정
+                            fontSize = 20.sp
                         )
                     )
 
-                    // 부가 정보 (상영시간, 감독, 국가)
                     Text(
                         text = "${movie.runtime}분 · ${movie.directors.joinToString(", ")} · ${movie.nation}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray, // 텍스트 색상 연한 회색
                         modifier = Modifier.padding(top = 4.dp)
                     )
-
                     // 별점 영역
                     Spacer(modifier = Modifier.height(8.dp))
                     StarRating(
@@ -316,11 +243,10 @@ fun MovieCard(
             if (showComments) {
                 // 코멘트 영역
                 Divider(
-                    color = Color(0xFFE0E0E0), // 코멘트 위에 얇은 구분선 추가
+                    color = Color(0xFFE0E0E0),
                     thickness = 1.dp,
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -336,7 +262,7 @@ fun MovieCard(
                         maxLines = if (isExpanded) Int.MAX_VALUE else 3, // 확장 여부에 따라 표시 줄 수 변경
                         overflow = if (isExpanded) TextOverflow.Clip else TextOverflow.Ellipsis, // 말줄임표
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp // 글자 크기 조정
+                            fontSize = 14.sp
                         )
                     )
                 }
@@ -345,6 +271,7 @@ fun MovieCard(
     }
 }
 
+// 포스터 비율의 surface 에 사진 채우기
 @Composable
 fun MovieImage(imageUrl: String) {
     val posterWidth = 80.dp
@@ -364,92 +291,31 @@ fun MovieImage(imageUrl: String) {
     }
 }
 
-@Composable
-fun CollectionTabContent() {
-    val collections = remember { mutableStateListOf<List<Movie>>() }
-    val isLoading = remember { mutableStateOf(true) }
-    val coroutineScope = rememberCoroutineScope()
-
-    // Firestore에서 데이터를 가져오는 로직
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            // 가상의 데이터를 컬렉션 그룹으로 나누는 로직
-            // fetchMoviesFromFirestore()는 이미 구현되어 있다고 가정
-            val fetchedMovies = fetchMoviesFromFirestore()
-            collections.addAll(
-                listOf(
-                    fetchedMovies.take(4), // 첫 번째 컬렉션 (최애영화)
-                    fetchedMovies.takeLast(4) // 두 번째 컬렉션 (애니모음)
-                )
-            )
-            isLoading.value = false
-        }
-    }
-
-    if (isLoading.value) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
-    } else {
-        LazyRow(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 40.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            items(collections) { collection ->
-                CollectionCard(
-                    movies = collection,
-                    title = "컬렉션"
-                )
-            }
-        }
-    }
-}
 
 @Composable
-fun CollectionCard(movies: List<Movie>, title: String) {
+fun CollectionCard(movies: List<Movie>, title: String, onClick: () -> Unit) {
     Card(
         modifier = Modifier
-            .width(150.dp)
-            .padding(8.dp),
+            .width(100.dp)
+            .padding(8.dp)
+            .clickable{onClick()},
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(Color(0xFFF9F9F9))
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 영화 포스터 섹션
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f) // 정사각형 비율로 설정
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(movies) { movie ->
-                        AsyncImage(
-                            model = movie.posters,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .width(60.dp)
-                                .height(90.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
+                movies[0].posters?.let { MovieImage(it) }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
             // 컬렉션 제목
             Text(
                 text = title,
@@ -461,78 +327,7 @@ fun CollectionCard(movies: List<Movie>, title: String) {
     }
 }
 
-@Composable
-fun SelectedCollection() {
-    val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
-    val isLoading = remember { mutableStateOf(true) }
-    val showComments = remember { mutableStateOf(true) } // 코멘트 표시 여부입니다
-    val coroutineScope = rememberCoroutineScope()
 
-    // 데이터 로드: Firestore에서 영화 데이터를 가져옴
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            val fetchedMovies = fetchMoviesFromFirestore() // Firestore에서 영화 목록 가져오기
-            movies.value = fetchedMovies
-            isLoading.value = false // 데이터 로드 완료 후 로딩 상태 해제
-        }
-    }
-
-    // 로딩 상태일 때 로딩 인디케이터 표시
-    if (isLoading.value) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator() // 로딩 중 표시
-        }
-    } else {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // 버튼 섹션
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(
-                    onClick = { showComments.value = !showComments.value }, // 코멘트 표시 토글
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
-                ) {
-                    Text(
-                        text = if (showComments.value) "별점만" else "코멘트 보기",
-                    )
-                }
-
-
-                Button(
-                    onClick = { /* 정렬 관련 로직 추가 */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
-                ){
-                    Text(
-                        text = "최근 작성 순",
-                    )
-                }
-            }
-
-            // 영화 목록 표시
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(movies.value) { movie ->
-                    // 별점 상태를 별도로 관리
-                    var rating by remember { mutableStateOf(0f) }
-
-                    MovieCard(
-                        movie = movie,
-                        rating = rating,
-                        showComments = showComments.value, // 코멘트 표시 여부 전달
-                        onRatingChanged = { newRating ->
-                            rating = newRating
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
 
 
 @Composable
