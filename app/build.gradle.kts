@@ -84,7 +84,12 @@ dependencies {
     implementation(libs.gson)
 
     // firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation ("com.google.firebase:firebase-firestore-ktx")
+    implementation(platform("com.google.firebase:firebase-bom:32.3.1"))
+    implementation (libs.google.firebase.firestore.ktx)
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.play.services.auth)
+
+    // Activity Result API
+    implementation("androidx.activity:activity-ktx:1.9.3")
+
 }
