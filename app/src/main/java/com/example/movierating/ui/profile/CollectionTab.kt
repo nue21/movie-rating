@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
@@ -41,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.movierating.data.Collection
 import com.example.movierating.data.Movie
 import kotlinx.coroutines.launch
 
@@ -53,6 +55,10 @@ fun CollectionTabContent(navController: NavController) {
     // 팝업 메뉴의 상태 (열림/닫힘 여부)
     val isMenuExpanded = remember { mutableStateOf(false) }
     val isEditSelected = remember { mutableStateOf(false)}
+    val showDeleteDialog = remember { mutableStateOf(false)}
+    val selectedCollections = remember { mutableStateListOf<List<Movie>>() }
+    val addingNewCollection = remember { mutableStateOf(false) }
+    val newCollectionTitle = remember { mutableStateOf("") }
 
     // Firestore에서 데이터를 가져오는 로직
     LaunchedEffect(Unit) {
@@ -97,6 +103,8 @@ fun CollectionTabContent(navController: NavController) {
                         DropdownMenuItem(
                             onClick = {
                                 isMenuExpanded.value = false
+                                collections.add(emptyList())
+                                addingNewCollection.value = true
                                 // "새 컬렉션 추가" 동작
                             },
                             text = { Text("새 컬렉션 추가") }
@@ -120,7 +128,10 @@ fun CollectionTabContent(navController: NavController) {
                             modifier = Modifier.padding(horizontal = 14.dp)
                         ) {
                             Button(
-                                onClick = {}, // 코멘트 표시 토글
+                                onClick = {
+                                    selectedCollections.clear()
+                                    isEditSelected.value = false
+                                          }, // 코멘트 표시 토글
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
                             ) {
                                 Icon(
@@ -133,7 +144,10 @@ fun CollectionTabContent(navController: NavController) {
                             }
                             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
                             Button(
-                                onClick = {}, // 코멘트 표시 토글
+                                onClick = {
+                                    selectedCollections.clear()
+                                    isEditSelected.value = false
+                                          }, // 코멘트 표시 토글
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
                             ) {
                                 Icon(
@@ -145,7 +159,7 @@ fun CollectionTabContent(navController: NavController) {
                                 )
                             }
                         }
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = { showDeleteDialog.value = true}) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = null
@@ -153,6 +167,30 @@ fun CollectionTabContent(navController: NavController) {
                         }
                     }
                 }
+            }
+
+            if (showDeleteDialog.value) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog.value = false },
+                    title = { Text("컬렉션 삭제") },
+                    text = { Text("선택한 컬렉션을 삭제하시겠습니까?") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                collections.removeAll(selectedCollections)
+                                selectedCollections.clear()
+                                showDeleteDialog.value = false
+                            }
+                        ) {
+                            Text("삭제")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog.value = false }) {
+                            Text("취소")
+                        }
+                    }
+                )
             }
 
             LazyVerticalGrid(
@@ -165,45 +203,23 @@ fun CollectionTabContent(navController: NavController) {
                 items(collections) { collection ->
                     CollectionCard(
                         movies = collection,
-                        title = "컬렉션",
+                        isSelected = selectedCollections.contains(collection),
+                        isEdit = isEditSelected.value,
                         onClick = {
-                            navController.navigate("collection")
+                            if (isEditSelected.value) {
+                                if (selectedCollections.contains(collection)) {
+                                    selectedCollections.remove(collection)
+                                } else {
+                                    selectedCollections.add(collection)
+                                }
+                            } else {
+                                navController.navigate("collection")
+                            }
                         }
                     )
                 }
             }
+
         }
     }
-}
-
-@Composable
-fun DeleteDialog(
-    modifier: Modifier = Modifier,
-    onCancel: () -> Unit,
-    onDelete: () -> Unit
-){
-    AlertDialog(
-        onDismissRequest = {},
-        title = { Text("영화 삭제") },
-        text = { Text("선택한 영화가 보고싶어요 목록에서 삭제됩니다.") },
-        modifier = modifier,
-        confirmButton = {
-            Row(
-                modifier = Modifier.padding(horizontal = 6.dp)
-            ){
-                TextButton(
-                    onClick = onCancel,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Blue)
-                ) {
-                    Text(text = "취소")
-                }
-                TextButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                ) {
-                    Text(text = "삭제")
-                }
-            }
-        }
-    )
 }

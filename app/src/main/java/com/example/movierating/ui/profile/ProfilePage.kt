@@ -2,6 +2,7 @@ package com.example.movierating.ui.profile
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +47,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +77,8 @@ import com.example.movierating.ui.rate.StarRating
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import okhttp3.internal.wait
+import java.time.format.TextStyle
 
 @Composable
 fun ProfilePage(
@@ -291,14 +296,24 @@ fun MovieImage(imageUrl: String) {
     }
 }
 
-
 @Composable
-fun CollectionCard(movies: List<Movie>, title: String, onClick: () -> Unit) {
+fun CollectionCard(
+    movies: List<Movie>,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    isEdit: Boolean,
+) {
+    var title = remember { mutableStateOf("컬렉션") }
     Card(
         modifier = Modifier
             .width(100.dp)
             .padding(8.dp)
-            .clickable{onClick()},
+            .clickable { onClick() }
+            .border(
+                width = if (isSelected) 3.dp else 0.dp, // 선택 여부에 따라 테두리 두께 변경
+                color = if (isSelected) Color.Gray else Color.White, // 선택 여부에 따라 색상 변경
+                shape = RoundedCornerShape(12.dp)
+            ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(Color(0xFFF9F9F9))
     ) {
@@ -313,21 +328,47 @@ fun CollectionCard(movies: List<Movie>, title: String, onClick: () -> Unit) {
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                movies[0].posters?.let { MovieImage(it) }
+                // movies가 비어있는 경우 대체 UI 출력
+                if (movies.isNotEmpty() && movies[0].posters != null) {
+                    movies[0].posters?.let { MovieImage(it) }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 80.dp, height = 120.dp) // 고정 크기 설정
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray), // 회색 배경
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No Image",
+                            color = Color.DarkGray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             // 컬렉션 제목
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (!isEdit) {
+                Text(
+                    text = title.value,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            else {
+                TextField(
+                    value = title.value,
+                    onValueChange = {title.value = it},
+                    modifier = Modifier.width(100.dp).height(56.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                    placeholder = {Text(text = title.value)}
+                )
+            }
         }
     }
 }
-
-
 
 
 @Composable
