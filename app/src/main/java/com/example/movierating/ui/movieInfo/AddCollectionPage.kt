@@ -15,11 +15,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.IconButton
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
@@ -42,7 +40,7 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddCollection(modifier: Modifier = Modifier,){
+fun AddCollectionPage(modifier: Modifier = Modifier,){
     val collections = listOf("최애영화", "애니모음")
     var newCollectionName by remember { mutableStateOf(TextFieldValue("")) }
     var isEditing by remember { mutableStateOf(false) }

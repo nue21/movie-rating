@@ -42,7 +42,7 @@ import com.example.movierating.ui.rate.StarRating
 import kotlinx.coroutines.launch
 
 @Composable
-fun RatingTabContent() {
+fun RatingTab() {
     val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
     val isLoading = remember { mutableStateOf(true) }
     val showComments = remember { mutableStateOf(true) } // 코멘트 표시 여부입니다

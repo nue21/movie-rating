@@ -1,8 +1,6 @@
 package com.example.movierating
 
-import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,22 +16,19 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
-import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
-import com.example.movierating.ui.home.HomePage
 import com.example.movierating.ui.movieInfo.AddCommentPage
 
-import com.example.movierating.ui.movieInfo.AddCollection
+import com.example.movierating.ui.movieInfo.AddCollectionPage
 
-import com.example.movierating.ui.movieInfo.MovieInfo
+import com.example.movierating.ui.movieInfo.MovieDetailPage
 import com.example.movierating.ui.profile.ProfilePage
 
-import com.example.movierating.ui.profile.SelectedCollection
+import com.example.movierating.ui.profile.CollectionDetailPage
 
-import com.example.movierating.ui.profile.WatchlistPage
+import com.example.movierating.ui.profile.WatchlistTab
 
 import com.example.movierating.ui.rate.CommentPage
-import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
 import com.example.movierating.ui.search.SearchResultPage
 import com.example.movierating.ui.search.SearchViewModel
@@ -82,7 +77,7 @@ class MainActivity : ComponentActivity() {
                             ProfilePage(modifier = Modifier.padding(innerPadding), navController = navController)
                         }
                         composable(route = "info") {
-                            MovieInfo(modifier = Modifier.padding(innerPadding), navController = navController)
+                            MovieDetailPage(modifier = Modifier.padding(innerPadding), navController = navController)
                         }
                         composable("searchResult") {
                             SearchResultPage(
@@ -92,13 +87,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("collection"){
-                            SelectedCollection(
+                            CollectionDetailPage(
                                 modifier = Modifier.padding(innerPadding),
                                 navController = navController
                             )
                         }
-                        composable("watchlist") { WatchlistPage() }
-                        composable("addcollection") { AddCollection() }
+                        composable("watchlist") { WatchlistTab() }
+                        composable("addcollection") { AddCollectionPage() }
                     }
                 }
             }

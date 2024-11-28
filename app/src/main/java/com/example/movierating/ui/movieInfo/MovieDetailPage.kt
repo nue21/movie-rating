@@ -11,7 +11,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
@@ -33,7 +32,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.R
@@ -42,7 +40,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun MovieInfo(modifier: Modifier = Modifier, navController: NavHostController){
+fun MovieDetailPage(modifier: Modifier = Modifier, navController: NavHostController){
     // Firestore에서 가져온 영화 데이터를 담는 변수
     var movie by rememberSaveable { mutableStateOf<Movie?>(null) }
     var isLoading by rememberSaveable { mutableStateOf(true) }
