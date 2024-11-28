@@ -2,7 +2,9 @@ package com.example.movierating.ui.profile
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+
 import androidx.compose.foundation.border
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +22,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+
 import androidx.compose.foundation.lazy.LazyRow
+
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,17 +36,23 @@ import androidx.compose.material.TabRowDefaults.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
+
+import androidx.compose.material.icons.outlined.Edit
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +70,12 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
+
+import androidx.compose.runtime.saveable.rememberSaveable
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,6 +89,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+
 import com.example.movierating.R
 import com.example.movierating.data.Movie
 import com.example.movierating.ui.rate.StarRating
@@ -79,6 +98,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import okhttp3.internal.wait
 import java.time.format.TextStyle
+
+import coil.compose.rememberAsyncImagePainter
+
 
 @Composable
 fun ProfilePage(
@@ -115,7 +137,7 @@ fun ProfilePage(
                     fontSize = 15.sp
                 )
             }
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f)) // 가변 공간 확보
             IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.Default.Settings,
@@ -124,10 +146,10 @@ fun ProfilePage(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(16.dp)) // 프로필 정보와 TabRow 사이 간격
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TabScreen(navController = navController)
+        // Tab 화면 섹션
+        TabScreen(navController)
     }
 }
 
@@ -142,6 +164,7 @@ fun TabScreen(navController: NavController) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // TabRow 영역 (IntrinsicSize 제거, 중앙 정렬 유지)
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 modifier = Modifier.fillMaxWidth() // 화면 너비에 맞춤
@@ -165,7 +188,7 @@ fun TabScreen(navController: NavController) {
             // 탭에 따른 화면 전환
             when (selectedTabIndex) {
                 0 -> RatingTabContent() // 평가 화면
-                1 -> WatchlistTabContent() // 보고싶어요 화면
+                1 -> WatchlistPage() // 보고싶어요 화면
                 2 -> CollectionTabContent(navController = navController)
             }
         }
@@ -177,6 +200,7 @@ suspend fun fetchMoviesFromFirestore(): List<Movie> {
     val moviesRef = db.collection("movies") // 'movies' 컬렉션 참조
 
     return try {
+        // Firestore에서 데이터를 가져와서 Movie 객체 리스트로 변환
         val querySnapshot = moviesRef.get().await() // 비동기 호출. querySnapshot에는 movies 컬렉션에서 받아온 정보가 담김
         querySnapshot.documents.mapNotNull { document ->    // querySnapshot.documents => document의 리스트 처럼 작동
             document.toObject(Movie::class.java) // Movie 데이터 클래스로 변환
@@ -186,7 +210,6 @@ suspend fun fetchMoviesFromFirestore(): List<Movie> {
         emptyList()
     }
 }
-
 
 // 포스터 비율의 surface 에 사진 채우기
 @Composable

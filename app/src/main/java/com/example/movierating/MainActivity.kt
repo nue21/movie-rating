@@ -22,10 +22,16 @@ import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
 import com.example.movierating.ui.movieInfo.AddCommentPage
+
+import com.example.movierating.ui.movieInfo.AddCollection
+
 import com.example.movierating.ui.movieInfo.MovieInfo
-import com.example.movierating.ui.profile.LikePage
 import com.example.movierating.ui.profile.ProfilePage
+
 import com.example.movierating.ui.profile.SelectedCollection
+
+import com.example.movierating.ui.profile.WatchlistPage
+
 import com.example.movierating.ui.rate.CommentPage
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
@@ -76,10 +82,7 @@ class MainActivity : ComponentActivity() {
                             ProfilePage(modifier = Modifier.padding(innerPadding), navController = navController)
                         }
                         composable(route = "info") {
-                            MovieInfo(modifier = Modifier.padding(innerPadding))
-                        }
-                        composable(route = "like") {
-                            LikePage(modifier = Modifier.padding(innerPadding))
+                            MovieInfo(modifier = Modifier.padding(innerPadding), navController = navController)
                         }
                         composable("searchResult") {
                             SearchResultPage(
@@ -94,6 +97,8 @@ class MainActivity : ComponentActivity() {
                                 navController = navController
                             )
                         }
+                        composable("watchlist") { WatchlistPage() }
+                        composable("addcollection") { AddCollection() }
                     }
                 }
             }
