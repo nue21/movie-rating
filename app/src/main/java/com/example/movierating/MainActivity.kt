@@ -21,6 +21,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 import com.example.movierating.ui.home.HomePage
+import com.example.movierating.ui.movieInfo.AddCollection
 import com.example.movierating.ui.movieInfo.MovieInfo
 import com.example.movierating.ui.profile.ProfilePage
 import com.example.movierating.ui.profile.WatchlistPage
@@ -73,7 +74,7 @@ class MainActivity : ComponentActivity() {
                             ProfilePage(modifier = Modifier.padding(innerPadding), navController = navController)
                         }
                         composable(route = "info") {
-                            MovieInfo(modifier = Modifier.padding(innerPadding))
+                            MovieInfo(modifier = Modifier.padding(innerPadding), navController = navController)
                         }
                         composable("searchResult") {
                             SearchResultPage(
@@ -83,6 +84,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("watchlist") { WatchlistPage() }
+                        composable("addcollection") { AddCollection() }
                     }
                 }
             }

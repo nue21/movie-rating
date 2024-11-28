@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
@@ -32,6 +33,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.R
 import com.example.movierating.data.Movie
@@ -39,7 +42,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun MovieInfo(modifier: Modifier = Modifier){
+fun MovieInfo(modifier: Modifier = Modifier, navController: NavHostController){
     // Firestore에서 가져온 영화 데이터를 담는 변수
     var movie by rememberSaveable { mutableStateOf<Movie?>(null) }
     var isLoading by rememberSaveable { mutableStateOf(true) }
@@ -69,7 +72,7 @@ fun MovieInfo(modifier: Modifier = Modifier){
             Text("Loading...", fontSize = 16.sp)
         }
     } else if (movie != null) {
-        MovieInfoContent(movie!!)
+        MovieInfoContent(movie!!, navController)
     } else {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -81,9 +84,9 @@ fun MovieInfo(modifier: Modifier = Modifier){
 }
 
 @Composable
-fun MovieInfoContent(movie: Movie){
-    // 스크롤 상태
+fun MovieInfoContent(movie: Movie, navController: NavHostController){
     val scrollState = rememberScrollState()
+    var isFavorite by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -177,9 +180,24 @@ fun MovieInfoContent(movie: Movie){
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            ActionButton(icon = Icons.Default.Add, label = "보고싶어요", backgroundColor = Color(0xFFE0E0E0))
-            ActionButton(icon = Icons.Default.Edit, label = "코멘트", backgroundColor = Color(0xFFE0E0E0))
-            ActionButton(icon = Icons.Default.Menu, label = "컬렉션", backgroundColor = Color(0xFFE0E0E0))
+            ActionButton(
+                icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                label = "보고싶어요",
+                backgroundColor = Color(0xFFE0E0E0),
+                onClick = { isFavorite = !isFavorite }
+            )
+            ActionButton(
+                icon = Icons.Default.Edit,
+                label = "코멘트",
+                backgroundColor = Color(0xFFE0E0E0),
+                onClick = {}
+            )
+            ActionButton(
+                icon = Icons.Default.Menu,
+                label = "컬렉션",
+                backgroundColor = Color(0xFFE0E0E0),
+                onClick = { navController.navigate("addCollection") }
+            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -215,9 +233,9 @@ fun MovieInfoContent(movie: Movie){
 }
 
 @Composable
-fun ActionButton(icon: ImageVector, label: String, backgroundColor: Color) {
+fun ActionButton(icon: ImageVector, label: String, backgroundColor: Color, onClick: () -> Unit) {
     Button(
-        onClick = {},
+        onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier.size(105.dp)
@@ -229,7 +247,7 @@ fun ActionButton(icon: ImageVector, label: String, backgroundColor: Color) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color.Black,
+                tint = if (icon == Icons.Filled.Favorite) Color.Red else Color.Black,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
