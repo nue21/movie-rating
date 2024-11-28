@@ -224,7 +224,7 @@ fun CollectionTab(navController: NavController) {
                                     selectedCollections.add(collection)
                                 }
                             } else {
-                                navController.navigate("collection")
+                                navController.navigate("collectionDetail")
                             }
                         }
                     )

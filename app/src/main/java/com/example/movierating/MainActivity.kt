@@ -87,9 +87,9 @@ class MainActivity : ComponentActivity() {
                  * 1. SignInPage : 구글 로그인 버튼 (비로그인 상태 : userData가 null일 때 보여짐)
                  * 2. MainNav : 본격적인 서비스를 이용할 수 있는 navigator (로그인 상태 : userData가 null이 아님)
                  */
-                NavHost(navController = navController, startDestination = "sign_in") {
+                NavHost(navController = navController, startDestination = "signIn") {
                     // 1. SignInPage
-                    composable("sign_in") {
+                    composable("signIn") {
                         val signInViewModel = viewModel<SignInViewModel>()
                         val signInState by signInViewModel.state.collectAsStateWithLifecycle()
                         // 로그인되어 있으면 바로 MainNav으로 이동
@@ -160,46 +160,11 @@ class MainActivity : ComponentActivity() {
                                         Toast.LENGTH_LONG
                                     ).show()
 
-                                    navController.navigate("sign_in")   // 화면 이동
+                                    navController.navigate("signIn")   // 화면 이동
                                 }
                             }
                         )
                     }
-                    composable("home") {
-                            //HomePage(modifier = Modifier.padding(innerPadding))
-                            AddCommentPage(navController = navController, modifier = Modifier.padding(innerPadding))
-                        }
-                        composable("rate") {
-                            CommentPage(modifier = Modifier.padding(innerPadding))
-                        }
-                        composable("search") {
-                            SearchPage(
-                                modifier = Modifier.padding(innerPadding),
-                                searchViewModel,
-                                goToResultPage = { navController.navigate("searchResult") }
-                            )
-                        }
-                        composable("profile") {
-                            ProfilePage(modifier = Modifier.padding(innerPadding), navController = navController)
-                        }
-                        composable(route = "info") {
-                            MovieDetailPage(modifier = Modifier.padding(innerPadding), navController = navController)
-                        }
-                        composable("searchResult") {
-                            SearchResultPage(
-                                modifier = Modifier.padding(innerPadding),
-                                searchViewModel,
-                                backToSearchPage = { navController.navigateUp() }
-                            )
-                        }
-                        composable("collection"){
-                            CollectionDetailPage(
-                                modifier = Modifier.padding(innerPadding),
-                                navController = navController
-                            )
-                        }
-                        composable("watchlist") { WatchlistTab() }
-                        composable("addcollection") { AddCollectionPage() }
                 }
             }
         }
@@ -248,6 +213,12 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
     composable("rate") {
         CommentPage(modifier)
     }
+    composable("movieDetail") {
+        MovieDetailPage(modifier,  navController)
+    }
+    composable("addCollection") {
+        AddCollectionPage()
+    }
 }
 
 
@@ -270,7 +241,10 @@ fun NavGraphBuilder.searchGraph(navController: NavHostController, modifier: Modi
 
 fun NavGraphBuilder.profileGraph(navController: NavHostController, modifier: Modifier) {
     composable("profile") {
-        ProfilePage(modifier, navController = navController)
+        ProfilePage(modifier, navController)
+    }
+    composable("collectionDetail"){
+        CollectionDetailPage(modifier, navController)
     }
 }
 
