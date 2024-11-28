@@ -369,16 +369,3 @@ fun CollectionCard(
         }
     }
 }
-
-
-@Composable
-fun WatchlistTabContent() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "보고싶어요 화면")
-    }
-}
