@@ -1,7 +1,9 @@
 plugins {
-    alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.gms.google-services")
+    id("com.android.application")
+    id("kotlin-kapt")  // KAPT 플러그인 추가
+    id("dagger.hilt.android.plugin")  // Hilt 플러그인 추가
 }
 
 android {
@@ -70,8 +72,16 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    // view model
+    // ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Hilt ViewModel
+    implementation(libs.hilt.android) // Hilt 라이브러리
+    kapt(libs.hilt.compiler) // Hilt 컴파일러
+
+    // Hilt Navigation Compose (필요한 경우 추가)
+    implementation(libs.androidx.hilt.navigation.compose)
+
     // navigation
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material)

@@ -12,11 +12,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import javax.inject.Inject
 
+
+// 이전 검색기록 (로컬 스토리지 저장)을 가져오기 위해선 SharedPreferences기능 필요
+// > sharedPreferences을 초기화하기 위해선 MainActivity의 context 필요
+// > context는 생성자 변수로 그냥 선언할 수 없어서 하단에 있는 SearchViewModelFactory 사용해서 초기화
+// => context를 받을 필요없으면 이와같이 할 필요 없음!
 class SearchViewModel(private val context: Context) :ViewModel() {
     private var sharedPreferences by mutableStateOf<SharedPreferences>(context.getSharedPreferences("search_history", Context.MODE_PRIVATE))
-
 
     // 검색어
     var searchInput by mutableStateOf("")
@@ -26,11 +29,6 @@ class SearchViewModel(private val context: Context) :ViewModel() {
     private var _searchHistory = mutableStateOf<List<String>>(emptyList())
     val searchHistory: State<List<String>> = _searchHistory
 
-    // 검색어 업데이트
-    fun updateSearchInput(newString: String) {
-        searchInput = newString
-    }
-
     // JSON 문자열을 리스트로 변환하여 불러오는 함수
     fun loadSearchHistory() {
         // local에 저장된 search history JSON 형식으로 가져오기
@@ -38,10 +36,15 @@ class SearchViewModel(private val context: Context) :ViewModel() {
 
         if (jsonString != null) {
             val type = object : TypeToken<List<String>>() {}.type
-            _searchHistory.value = Gson().fromJson(jsonString, type) // JSON 문자열을 리스트로 변환
+            _searchHistory.value = Gson().fromJson(jsonString, type)  // JSON 문자열을 리스트로 변환
         } else {
             _searchHistory.value = emptyList() // 저장된 데이터가 없으면 빈 리스트 반환
         }
+    }
+
+    // 검색어 업데이트
+    fun updateSearchInput(newString: String) {
+        searchInput = newString
     }
 
     // search history 리셋 빈배열로 만들기
