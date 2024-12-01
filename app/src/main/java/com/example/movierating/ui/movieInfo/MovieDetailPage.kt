@@ -40,19 +40,19 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun MovieDetailPage(modifier: Modifier = Modifier, navController: NavHostController){
-    // Firestore에서 가져온 영화 데이터를 담는 변수
+fun MovieDetailPage(modifier: Modifier = Modifier, navController: NavHostController, docId: String){
     var movie by rememberSaveable { mutableStateOf<Movie?>(null) }
     var isLoading by rememberSaveable { mutableStateOf(true) }
 
-    // Firestore에서 영화 데이터를 비동기적으로 읽어오기
-    LaunchedEffect(Unit) {
+    LaunchedEffect(docId) {
         val firestore = FirebaseFirestore.getInstance()
         try {
-            val snapshot = firestore.collection("movies").limit(1).get().await() //우선 첫번째 영화데이터만 가져오도록 설정(추후 수정예정)
-            if (snapshot.documents.isNotEmpty()) {
-                val movieData = snapshot.documents.first().toObject(Movie::class.java)
-                movie = movieData
+            val document = firestore.collection("movies").document(docId).get().await()
+            if (document.exists()) {
+                val movieData = document.toObject(Movie::class.java)
+                movieData?.let {
+                    movie = it.copy(DOCID = document.id) // 문서 ID를 DOCID에 할당
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -89,13 +89,13 @@ fun MovieInfoContent(movie: Movie, navController: NavHostController){
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState) // 스크롤 가능하게 설정
+            .verticalScroll(scrollState)
     ) {
         TopAppBar(
             title = {},
             navigationIcon = {
                 IconButton(
-                    onClick = {},
+                    onClick = { navController.popBackStack() },
                     modifier = Modifier.padding(vertical = 12.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -165,7 +165,7 @@ fun MovieInfoContent(movie: Movie, navController: NavHostController){
                     modifier = Modifier.size(40.dp)
                 )
                 if (i != 5) {
-                    Spacer(modifier = Modifier.width(8.dp)) // 간격 설정
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
             }
         }
@@ -225,7 +225,6 @@ fun MovieInfoContent(movie: Movie, navController: NavHostController){
             Text(text = movie.actors.joinToString(", "), fontSize = 14.sp, color = Color.Black)
         }
 
-        // 마지막 여백 추가
         Spacer(modifier = Modifier.height(50.dp))
     }
 }
@@ -257,9 +256,9 @@ fun ActionButton(icon: ImageVector, label: String, backgroundColor: Color, onCli
 // 한글 플롯만 추출하는 함수
 fun getKoreanPlot(plots: List<String>): String {
     return if (plots.isNotEmpty()) {
-        plots[0].replace("\n", "") // \n을 공백으로 치환
+        plots[0].replace("\n", "")
     } else {
-        "한글 설명이 없습니다." // 플롯 데이터가 없는 경우 기본 메시지
+        "한글 설명이 없습니다."
     }
 }
 
@@ -267,7 +266,7 @@ fun getKoreanPlot(plots: List<String>): String {
 fun formatRuntime(runtime: String?): String {
     if (runtime.isNullOrBlank()) return "정보 없음"
     return try {
-        val totalMinutes = runtime.toInt() // 런타임을 숫자로 변환
+        val totalMinutes = runtime.toInt()
         val hours = totalMinutes / 60
         val minutes = totalMinutes % 60
         "${hours}시간 ${minutes}분"

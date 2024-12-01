@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
                  * 1. SignInPage : 구글 로그인 버튼 (비로그인 상태 : userData가 null일 때 보여짐)
                  * 2. MainNav : 본격적인 서비스를 이용할 수 있는 navigator (로그인 상태 : userData가 null이 아님)
                  */
-                NavHost(navController = navController, startDestination = "signIn") {
+                NavHost(navController = navController, startDestination = "main") {
                     // 1. SignInPage
                     composable("signIn") {
                         val signInViewModel = viewModel<SignInViewModel>()
@@ -199,13 +199,27 @@ fun MainNavHost (
     }
 }
 
-fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit
-) {
+fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit) {
     composable("home") {
-        HomePage(modifier, onSignOut, goToWorldCupPage = { navController.navigate("worldCup") })
+        HomePage(
+            modifier,
+            onSignOut,
+            goToWorldCupPage = { navController.navigate("worldCup") },
+            goToDetailPage = { docId ->
+                navController.navigate("movieDetail/$docId"){
+                    launchSingleTop = true
+                }
+            }
+        )
     }
     composable("worldCup") {
         WorldCupPage(modifier)
+    }
+
+    // MovieDetailPage 추가
+    composable("movieDetail/{docId}") { backStackEntry ->
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        MovieDetailPage(modifier, navController, docId)
     }
 }
 
@@ -213,9 +227,9 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
     composable("rate") {
         CommentPage(modifier)
     }
-    composable("movieDetail") {
+    /*composable("movieDetail") {
         MovieDetailPage(modifier,  navController)
-    }
+    }*/
     composable("addCollection") {
         AddCollectionPage()
     }
