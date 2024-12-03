@@ -10,13 +10,15 @@ data class Movie(
     val runtime: String? = null,
     val rating: String? = null,
     val genre: String? = null,
-    val posters: String? = null
+    val posters: String? = null,
+    val year: String? = null
 
     // prodYear 추가 예정
 ) {
     // Movie 객체를 Map으로 변환
     fun toMap(): Map<String, Any?> {
         return mapOf(
+            "DOCID" to DOCID,
             "title" to title,
             "nation" to nation,
             "directors" to directors,
@@ -25,7 +27,8 @@ data class Movie(
             "runtime" to runtime,
             "rating" to rating,
             "genre" to genre,
-            "posters" to posters
+            "posters" to posters,
+            "year" to year
         )
     }
 }

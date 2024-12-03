@@ -1,5 +1,6 @@
 package com.example.movierating.service
 
+import android.content.Context
 import android.util.Log
 import com.example.movierating.data.Movie
 import com.google.firebase.firestore.FirebaseFirestore
@@ -7,11 +8,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import java.io.BufferedReader
-import java.io.File
-import java.io.InputStream
 import java.io.InputStreamReader
 
-class MovieService() {
+class MovieService(private val context: Context) {  // Context를 생성자에서 받아옵니다.
     private val gson = Gson()
     private val db = FirebaseFirestore.getInstance() // Firestore 인스턴스
 
@@ -76,7 +75,8 @@ class MovieService() {
                         runtime = runtime,
                         rating = rating,
                         genre = genre,
-                        posters = posters
+                        posters = posters,
+                        year = "2020"
                     )
                 )
             }
@@ -101,7 +101,9 @@ class MovieService() {
         }
     }
 
-    fun readFile(inputStream: InputStream): String {
+    // assets에서 파일을 읽는 메서드
+    fun readFileFromAssets(fileName: String): String {
+        val inputStream = context.assets.open(fileName)
         val reader = BufferedReader(InputStreamReader(inputStream))
         val stringBuilder = StringBuilder()
         var line: String?
@@ -118,5 +120,4 @@ class MovieService() {
 
         return stringBuilder.toString()
     }
-
 }

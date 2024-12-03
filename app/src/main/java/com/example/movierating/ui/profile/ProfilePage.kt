@@ -1,5 +1,7 @@
 package com.example.movierating.ui.profile
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,12 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.movierating.R
 import com.example.movierating.data.Movie
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -169,3 +174,35 @@ fun MovieImage(imageUrl: String) {
     }
 }
 
+@Composable
+fun StarRating(
+    modifier: Modifier = Modifier,
+    initialRating: Float = 0f,
+    onRatingChanged: (Float) -> Unit = {}
+) {
+    var rating by remember { mutableStateOf(initialRating) }
+
+    val fullStar: Painter = painterResource(id = R.drawable.ic_fullstar)
+    val halfStar: Painter = painterResource(id = R.drawable.ic_halfstar)
+
+    Row(modifier = modifier) {
+        for (i in 1..5) {
+            val starPainter = when {
+                i <= rating -> fullStar
+                i - 0.5f <= rating -> halfStar
+                else -> painterResource(id = R.drawable.ic_emptystar)
+            }
+
+            Image(
+                painter = starPainter,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable {
+                        rating = if (rating == i.toFloat()) i - 0.5f else i.toFloat()
+                        onRatingChanged(rating) // 변경된 별점 전달
+                    }
+            )
+        }
+    }
+}

@@ -16,9 +16,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,6 +30,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
+import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 
 import com.example.movierating.ui.home.HomePage
@@ -43,7 +46,7 @@ import com.example.movierating.ui.profile.CollectionDetailPage
 
 import com.example.movierating.ui.profile.WatchlistTab
 
-import com.example.movierating.ui.rate.CommentPage
+import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
 import com.example.movierating.ui.search.SearchResultPage
 import com.example.movierating.ui.search.SearchViewModel
@@ -56,6 +59,7 @@ import com.google.android.gms.auth.api.identity.Identity
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.launch
+import java.io.FileInputStream
 
 @HiltAndroidApp
 class MyApplication : Application() {
@@ -79,6 +83,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             MovieRatingTheme {
                 val navController = rememberNavController()
@@ -87,7 +92,7 @@ class MainActivity : ComponentActivity() {
                  * 1. SignInPage : 구글 로그인 버튼 (비로그인 상태 : userData가 null일 때 보여짐)
                  * 2. MainNav : 본격적인 서비스를 이용할 수 있는 navigator (로그인 상태 : userData가 null이 아님)
                  */
-                NavHost(navController = navController, startDestination = "signIn") {
+                NavHost(navController = navController, startDestination = "main") {
                     // 1. SignInPage
                     composable("signIn") {
                         val signInViewModel = viewModel<SignInViewModel>()
@@ -149,13 +154,17 @@ class MainActivity : ComponentActivity() {
                     }
                     // 2. MainNav
                     composable("main") {
+                        val context = LocalContext.current
+                        val lifecycleOwner = LocalLifecycleOwner.current
+                        val coroutineScope = rememberCoroutineScope()
+
                         MainNavHost(
                             onSignOut = {
-                                lifecycleScope.launch {
+                                lifecycleOwner.lifecycleScope.launch {
                                     googleAuthUiClient.signOut()    // 로그아웃
                                     userViewModel.resetUserData()   // userData -> null
                                     Toast.makeText(
-                                        applicationContext,
+                                        context,
                                         "Signed out",
                                         Toast.LENGTH_LONG
                                     ).show()
@@ -164,7 +173,27 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+
+                        // 이메일, 비밀번호로 자동 로그인 호출
+                        LaunchedEffect(Unit) {
+                            try {
+                                val email = "g2hyeong@naver.com"
+                                val password = "123456"
+                                val userData = googleAuthUiClient.signInAndSaveUser(email, password)
+
+                                if (userData != null) {
+                                    Toast.makeText(context, "Welcome ${userData.userId}", Toast.LENGTH_LONG).show()
+                                } else {
+                                    Toast.makeText(context, "Login failed", Toast.LENGTH_LONG).show()
+                                    navController.navigate("signIn") // 로그인 실패 시 로그인 화면으로 이동
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
                     }
+
                 }
             }
         }
@@ -211,7 +240,7 @@ fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifi
 
 fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifier) {
     composable("rate") {
-        CommentPage(modifier)
+        RatePage(modifier)
     }
     composable("movieDetail") {
         MovieDetailPage(modifier,  navController)

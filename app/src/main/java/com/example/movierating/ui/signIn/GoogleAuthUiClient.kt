@@ -27,6 +27,44 @@ class GoogleAuthUiClient(
     private val firestore = FirebaseFirestore.getInstance()
     private val userRepository = UserRepository(auth, firestore)
 
+    /**
+     * 구글 연동 아닌 계정 사용
+     */
+
+    ////////////////////////////
+
+    suspend fun signInAndSaveUser(email: String, password: String): UserData? {
+        val auth = Firebase.auth
+        val firestore = FirebaseFirestore.getInstance()
+
+        return try {
+            // Firebase Auth로 로그인
+            val authResult = auth.signInWithEmailAndPassword(email, password).await()
+            val firebaseUser = authResult.user ?: throw IllegalStateException("User not found after login")
+
+            // Firestore에 사용자 데이터 저장
+            val userData = UserData(
+                userId = firebaseUser.uid,
+                username = firebaseUser.displayName,
+                profilePictureUrl = firebaseUser.photoUrl?.toString(),
+                collectionList = emptyList(),
+                movieRatedList = emptyList(),
+                wishList = emptyList()
+            )
+
+            firestore.collection("user").document(firebaseUser.uid)
+                .set(userData)
+                .await()
+
+            userData // 반환된 UserData 객체
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null // 오류 발생 시 null 반환
+        }
+    }
+
+    /////////////////////////////
+
     suspend fun signIn() : IntentSender? {
         val result = try {
             oneTapClient.beginSignIn(
