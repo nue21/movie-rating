@@ -197,7 +197,8 @@ fun RateRandomTab(){
                         onRatingChanged = { newRating ->
                             rating = newRating
                             saveRating(movie, newRating, userData.value, db)
-                        }
+                        },
+                        comment = ""
                     )
                 }
             }

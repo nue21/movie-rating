@@ -98,7 +98,8 @@ fun CollectionDetailPage(
                         showComments = showComments.value, // 코멘트 표시 여부 전달
                         onRatingChanged = { newRating ->
                             rating = newRating
-                        }
+                        },
+                        comment = ""
                     )
                 }
             }

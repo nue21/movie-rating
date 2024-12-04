@@ -41,6 +41,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.movierating.R
 import com.example.movierating.data.Movie
+import com.example.movierating.data.MovieRated
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -150,6 +151,20 @@ suspend fun fetchMoviesFromFirestore(): List<Movie> {
         }
     } catch (exception: Exception) {
         // 오류 발생 시 빈 리스트 반환 또는 예외 처리
+        emptyList()
+    }
+}
+
+suspend fun fetchMovieRatedFromFirestore() : List<MovieRated>{
+    val db = FirebaseFirestore.getInstance() // Firestore 인스턴스
+    val moviesRef = db.collection("movieRated") // 'movies' 컬렉션 참조
+
+    return try {
+        val querySnapshot = moviesRef.get().await()
+        querySnapshot.documents.mapNotNull { document ->
+            document.toObject(MovieRated::class.java)
+        }
+    } catch (exception: Exception){
         emptyList()
     }
 }
