@@ -1,5 +1,6 @@
 package com.example.movierating.ui.profile
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -155,19 +156,27 @@ suspend fun fetchMoviesFromFirestore(): List<Movie> {
     }
 }
 
-suspend fun fetchMovieRatedFromFirestore() : List<MovieRated>{
+suspend fun fetchMovieRatedFromFirestore(): List<MovieRated> {
     val db = FirebaseFirestore.getInstance() // Firestore 인스턴스
-    val moviesRef = db.collection("movieRated") // 'movies' 컬렉션 참조
+    val moviesRef = db.collection("movieRated") // 'movieRated' 컬렉션 참조
 
     return try {
         val querySnapshot = moviesRef.get().await()
-        querySnapshot.documents.mapNotNull { document ->
-            document.toObject(MovieRated::class.java)
+        if (querySnapshot.isEmpty) {
+            Log.d("FirestoreDebug", "No documents found in 'movieRated' collection.")
+            emptyList()
+        } else {
+            querySnapshot.documents.mapNotNull { document ->
+                Log.d("FirestoreDebug", "Document found: ${document.id} -> ${document.data}")
+                document.toObject(MovieRated::class.java)
+            }
         }
-    } catch (exception: Exception){
+    } catch (exception: Exception) {
+        Log.e("FirestoreDebug", "Error fetching 'movieRated' collection", exception)
         emptyList()
     }
 }
+
 
 // 포스터 비율의 surface 에 사진 채우기
 @Composable

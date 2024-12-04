@@ -141,7 +141,7 @@ fun RatingTab() {
                         matchedMovie?.let { movie ->
                             MovieCard(
                                 movie = movie,
-                                rating = rating,
+                                rating = movieRated.score?.toFloat() ?: 0f,
                                 showComments = showComments.value, // 코멘트 표시 여부 전달
                                 onRatingChanged = { newRating ->
                                     rating = newRating
