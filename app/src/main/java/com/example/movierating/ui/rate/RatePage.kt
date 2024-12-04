@@ -3,8 +3,10 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,7 +16,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,39 +28,60 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.movierating.R
-
-data class Movie(
-    val posterUrl: String,
-    val title: String,
-    val info: String,
-    val comment: String
-)
+import com.example.movierating.data.Movie
+import com.example.movierating.data.MovieRated
+import com.example.movierating.data.User
+import com.example.movierating.service.UserService
+import com.example.movierating.ui.profile.MovieCard
+import com.example.movierating.ui.profile.RatingTab
+import com.example.movierating.ui.profile.fetchMoviesFromFirestore
+import com.example.movierating.ui.signIn.UserData
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RatePage(
     modifier: Modifier = Modifier
 ) {
-    val movies = listOf(
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/55/tn_DPK022735.jpg", "오드리", "2024 1시간 15분", "오드리 재밌다 (아직 안봄)"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/51/tn_DPF029805.jpg", "프로이드의 라스트 세션", "2024 1시간 15분", "에고 이드 초에고 프로이트 화이팅"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/50/tn_DPF029783.jpg", "10 라이브즈", "2024 1시간 15분", "나도 목숨 10개 가지고 싶다. 하나 주라."),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/46/tn_DPF029705.jpg", "굿 바이 크루얼 월드", "2024 1시간 15분", "잔인한 세상 미워\n 행복했으면 좋겠다."),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/43/tn_DPF029352.jpg", "키타로 탄생", "2024 1시간 15분", "복숭아동자 리메이크"),
-        Movie("http://file.koreafilm.or.kr/thm/02/99/18/37/tn_DPF029035.jpg", "사랑은 비", "2024 1시간 15분", "가뭄")
-    )
+    val user = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val userData = remember { mutableStateOf<UserData?>(null) }
+
+    user?.let {
+        val userId = it.uid
+        db.collection("user").whereEqualTo("userId", userId).get()
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    for (document in documents) {
+                        userData.value = document.toObject(UserData::class.java)
+                    }
+                } else {
+                    Log.d("Firestore", "No matching user found")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error querying user data", e)
+            }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -93,26 +119,86 @@ fun RatePage(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "125",
+                text = userData.value?.movieRatedList?.size.toString(), // 이게 계속 변했으면 좋겠어. 변수를 remember로 바꿔줘야 할까?
                 style = typography.displayMedium
             )
             Text(
                 text = "평가한 영화 수",
                 style = typography.titleMedium
             )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 16.dp)
-            ) {
-                items(movies) { movie ->
+            Spacer(modifier = Modifier.padding(bottom = 8.dp))
+            RateRandomTab()
+        }
+    }
+}
+
+@Composable
+fun RateRandomTab(){
+    val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
+    val isLoading = remember { mutableStateOf(true) }
+    val showComments = remember { mutableStateOf(false) } // 코멘트 표시 여부입니다
+    val coroutineScope = rememberCoroutineScope()
+
+    val user = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val userData = remember { mutableStateOf<UserData?>(null) }
+
+    LaunchedEffect(user) {
+        user?.let {
+            val userId = it.uid
+            // Firestore에서 해당 userId로 문서 조회
+            db.collection("user")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (!documents.isEmpty) {
+                        // 첫 번째 문서를 UserData 객체로 변환
+                        val document = documents.documents.first()
+                        userData.value = document.toObject(UserData::class.java)
+                    } else {
+                        Log.d("Firestore", "No matching user found")
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Firestore", "Error querying user data", e)
+                }
+        }
+    }
+
+
+        // 데이터 로드: Firestore에서 영화 데이터를 가져옴
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            val fetchedMovies = fetchMoviesFromFirestore() // Firestore에서 영화 목록 가져오기
+            movies.value = fetchedMovies
+            isLoading.value = false // 데이터 로드 완료 후 로딩 상태 해제
+        }
+    }
+
+    // 로딩 상태일 때 로딩 인디케이터 표시
+    if (isLoading.value) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator() // 로딩 중 표시
+        }
+    } else {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 영화 목록 표시
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(movies.value) { movie ->
+                    // 별점 상태를 별도로 관리
+                    var rating by remember { mutableStateOf(0f) }
                     MovieCard(
-                        moviePosterUrl = movie.posterUrl,
-                        movieTitle = movie.title,
-                        movieInfo = movie.info,
-                        onRatingChanged = { rating ->
-                            Log.d("RatePage", "영화 ${movie.title}의 별점이 변경되었습니다.")
-                        }
+                        movie = movie,
+                        rating = rating,
+                        showComments = showComments.value, // 코멘트 표시 여부 전달
+                        onRatingChanged = { newRating ->
+                            rating = newRating
+                            saveRating(movie, newRating, userData.value, db)
+                        },
+                        comment = ""
                     )
                 }
             }
@@ -120,85 +206,85 @@ fun RatePage(
     }
 }
 
-@Composable
-fun MovieCard(
-    moviePosterUrl: String,
-    movieTitle: String,
-    movieInfo: String,
-    onRatingChanged: (Float) -> Unit
-) {
-    var rating by remember { mutableStateOf(0f) } // 별점 상태 값 초기화
+private fun saveRating(movie: Movie, score: Float, userData: UserData?, db: FirebaseFirestore) {
+    // Firestore 컬렉션 이름
+    val movieRatedCollection = db.collection("movieRated")
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .padding(vertical = 8.dp)
-    ) {
-        Row {
-            MovieImage(imageUrl = moviePosterUrl)
-
-            Column(
-                modifier = Modifier.padding(10.dp)
-            ) {
-                Text(
-                    text = movieTitle,
-                    style = typography.titleLarge
+    // 1. 해당 영화와 사용자 ID에 대한 MovieRated 문서가 있는지 확인
+    movieRatedCollection
+        .whereEqualTo("movie", movie.DOCID)
+        .whereEqualTo("userId", userData?.userId)
+        .get()
+        .addOnSuccessListener { documents ->
+            if (!documents.isEmpty) {
+                // 기존 문서가 있는 경우
+                val existingDoc = documents.documents.first()
+                val updatedData = mapOf(
+                    "score" to score.toDouble(),
+                    "updatedTime" to LocalDateTime.now()
                 )
-                Text(
-                    text = movieInfo,
-                    style = typography.titleMedium
-                )
-                StarRating(
-                    initialRating = rating,
-                    onRatingChanged = { newRating ->
-                        rating = newRating
-                        onRatingChanged(newRating) // 부모로 변경된 별점 전달
+                // 기존 문서 업데이트
+                movieRatedCollection.document(existingDoc.id).update(updatedData)
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "MovieRated updated successfully")
                     }
-                )
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Error updating MovieRated", e)
+                    }
+            } else {
+                // 2. 기존 문서가 없는 경우 새 문서 생성
+                val movieRated = userData?.let {
+                    MovieRated(
+                        movie = movie.DOCID,
+                        score = score.toDouble(),
+                        comment = null,
+                        updatedTime = LocalDateTime.now(),
+                        userId = it.userId
+                    )
+                }
+
+                if (movieRated != null) {
+                    movieRatedCollection.add(movieRated.toMap())
+                        .addOnSuccessListener { documentReference ->
+                            Log.d("Firestore", "MovieRated saved with ID: ${documentReference.id}")
+
+                            // UserData의 movieRatedList 업데이트
+                            val userDocRef = db.collection("user").document(userData?.userId ?: "")
+
+                            // 기존 User 데이터를 가져와서 movieRatedList 업데이트
+                            userDocRef.get()
+                                .addOnSuccessListener { userDocument ->
+                                    if (userDocument.exists()) {
+                                        val currentMovieRatedList = userDocument.get("movieRatedList") as? List<String> ?: mutableListOf()
+
+                                        // 기존 리스트에 새 document id 추가
+                                        val updatedMovieRatedList = currentMovieRatedList.toMutableList()
+                                        updatedMovieRatedList.add(documentReference.id)
+
+                                        // User의 movieRatedList 업데이트
+                                        val userUpdate = mapOf("movieRatedList" to updatedMovieRatedList)
+                                        userDocRef.update(userUpdate)
+                                            .addOnSuccessListener {
+                                                Log.d("Firestore", "UserData updated successfully")
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("Firestore", "Error updating UserData", e)
+                                            }
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("Firestore", "Error fetching user data", e)
+                                }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("Firestore", "Error saving MovieRated", e)
+                        }
+                }
             }
         }
-    }
-}
-
-@Composable
-fun MovieImage(imageUrl: String) {
-    AsyncImage(
-        model = imageUrl,
-        contentDescription = "Movie Thumbnail",
-        contentScale = ContentScale.Crop // 이미지 크기에 맞게 조정
-    )
-}
-
-@Composable
-fun StarRating(
-    modifier: Modifier = Modifier,
-    initialRating: Float = 0f,
-    onRatingChanged: (Float) -> Unit = {}
-) {
-    var rating by remember { mutableStateOf(initialRating) }
-
-    val fullStar: Painter = painterResource(id = R.drawable.ic_fullstar)
-    val halfStar: Painter = painterResource(id = R.drawable.ic_halfstar)
-
-    Row(modifier = modifier) {
-        for (i in 1..5) {
-            val starPainter = when {
-                i <= rating -> fullStar
-                i - 0.5f <= rating -> halfStar
-                else -> painterResource(id = R.drawable.ic_emptystar)
-            }
-
-            Image(
-                painter = starPainter,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clickable {
-                        rating = if (rating == i.toFloat()) i - 0.5f else i.toFloat()
-                        onRatingChanged(rating) // 변경된 별점 전달
-                    }
-            )
+        .addOnFailureListener { e ->
+            Log.e("Firestore", "Error querying MovieRated", e)
         }
-    }
 }
+
+
