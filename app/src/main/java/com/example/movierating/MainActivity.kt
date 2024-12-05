@@ -228,13 +228,27 @@ fun MainNavHost (
     }
 }
 
-fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit
-) {
+fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit) {
     composable("home") {
-        HomePage(modifier, onSignOut, goToWorldCupPage = { navController.navigate("worldCup") })
+        HomePage(
+            modifier,
+            onSignOut,
+            goToWorldCupPage = { navController.navigate("worldCup") },
+            goToDetailPage = { docId ->
+                navController.navigate("movieDetail/$docId"){
+                    launchSingleTop = true
+                }
+            }
+        )
     }
     composable("worldCup") {
         WorldCupPage(modifier)
+    }
+
+    // MovieDetailPage 추가
+    composable("movieDetail/{docId}") { backStackEntry ->
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        MovieDetailPage(modifier, navController, docId)
     }
 }
 
@@ -242,9 +256,9 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
     composable("rate") {
         RatePage(modifier)
     }
-    composable("movieDetail") {
+    /*composable("movieDetail") {
         MovieDetailPage(modifier,  navController)
-    }
+    }*/
     composable("addCollection") {
         AddCollectionPage()
     }

@@ -46,7 +46,7 @@ import com.example.movierating.R
 import com.example.movierating.data.Movie
 import com.example.movierating.data.MovieRated
 import com.example.movierating.data.User
-import com.example.movierating.service.UserService
+//import com.example.movierating.service.UserService
 import com.example.movierating.ui.profile.MovieCard
 import com.example.movierating.ui.profile.RatingTab
 import com.example.movierating.ui.profile.fetchMovieRatedFromFirestore

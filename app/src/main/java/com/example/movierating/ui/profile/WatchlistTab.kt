@@ -89,10 +89,9 @@ fun WatchlistTab(){
         isDeleteDialogOpen.value = true
     }*/
 
-    // Firestore 데이터 가져오기
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            val fetchedMovies = fetchMoviesFromFirestore() // Firestore에서 영화 목록 가져오기
+            val fetchedMovies = fetchMoviesFromFirestore()
             movies.value = fetchedMovies
             isLoading.value = false // 데이터 로드 완료 후 로딩 상태 해제
         }
@@ -116,7 +115,7 @@ fun WatchlistTab(){
         ) {
             if (isFilterApplied.value || isEditing.value) {
                 Icon(
-                    imageVector = Icons.Outlined.Close, // X 아이콘
+                    imageVector = Icons.Outlined.Close,
                     contentDescription = "Close Filter",
                     tint = Color.White,
                     modifier = Modifier.size(16.dp)
@@ -154,7 +153,7 @@ fun WatchlistTab(){
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator() // 로딩 중 표시
+            CircularProgressIndicator()
         }
     } else{
         Column(
@@ -169,8 +168,8 @@ fun WatchlistTab(){
                 columns = GridCells.Fixed(3),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp), // 세로 간격 조정
-                horizontalArrangement = Arrangement.spacedBy(8.dp) // 가로 간격 조정
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(movies.value) { movie ->
                     Column(
@@ -199,7 +198,7 @@ fun WatchlistTab(){
         }
         if (isDeleteDialogOpen.value) {
             DeleteDialog(
-                onCancel = { isDeleteDialogOpen.value = false }, // 팝업 닫기
+                onCancel = { isDeleteDialogOpen.value = false },
                 onDelete = {
                     // 삭제 로직은 나중에 구현
                     isDeleteDialogOpen.value = false

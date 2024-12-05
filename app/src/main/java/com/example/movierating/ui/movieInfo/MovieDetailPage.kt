@@ -1,7 +1,9 @@
 package com.example.movierating.ui.movieInfo
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,23 +39,50 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.R
 import com.example.movierating.data.Movie
+import com.example.movierating.ui.user.UserRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.tasks.await
+import java.time.LocalDateTime
 
 @Composable
-fun MovieDetailPage(modifier: Modifier = Modifier, navController: NavHostController){
-    // Firestore에서 가져온 영화 데이터를 담는 변수
-    var movie by rememberSaveable { mutableStateOf<Movie?>(null) }
+fun MovieDetailPage(
+    modifier: Modifier = Modifier,
+    navController: NavHostController,
+    docId: String
+){
+    var movie by remember{ mutableStateOf<Movie?>(null) }
     var isLoading by rememberSaveable { mutableStateOf(true) }
+    var userRating by rememberSaveable { mutableStateOf(0f) }
+    val user = FirebaseAuth.getInstance().currentUser
+    val firestore = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
+    val userRepository = UserRepository(auth, firestore)
 
-    // Firestore에서 영화 데이터를 비동기적으로 읽어오기
-    LaunchedEffect(Unit) {
+    LaunchedEffect(docId) {
         val firestore = FirebaseFirestore.getInstance()
         try {
-            val snapshot = firestore.collection("movies").limit(1).get().await() //우선 첫번째 영화데이터만 가져오도록 설정(추후 수정예정)
-            if (snapshot.documents.isNotEmpty()) {
-                val movieData = snapshot.documents.first().toObject(Movie::class.java)
-                movie = movieData
+            val document = firestore.collection("movies").document(docId).get().await()
+            if (document.exists()) {
+                val movieData = document.toObject(Movie::class.java)
+                movieData?.let {
+                    movie = it.copy(DOCID = document.id) // 문서 ID를 DOCID에 할당
+                }
+            }
+            // 사용자 별점 불러오기
+            user?.let {
+                val userId = it.uid
+                val ratingDoc = firestore.collection("movieRated")
+                    .whereEqualTo("movie", docId)
+                    .whereEqualTo("userId", userId)
+                    .get()
+                    .await()
+                if (!ratingDoc.isEmpty) {
+                    val ratingData = ratingDoc.documents.first()
+                    userRating = ratingData.getDouble("score")?.toFloat() ?: 0f
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -70,7 +100,16 @@ fun MovieDetailPage(modifier: Modifier = Modifier, navController: NavHostControl
             Text("Loading...", fontSize = 16.sp)
         }
     } else if (movie != null) {
-        MovieInfoContent(movie!!, navController)
+        MovieInfoContent(
+            movie!!,
+            userRating,
+            navController,
+            onRatingChanged = { newRating ->
+                saveRating(movie!!, newRating, auth.currentUser) // 별점 저장 함수 호출
+            },
+            userRepository = userRepository,
+            userId = auth.currentUser?.uid ?: ""
+        )
     } else {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -82,20 +121,50 @@ fun MovieDetailPage(modifier: Modifier = Modifier, navController: NavHostControl
 }
 
 @Composable
-fun MovieInfoContent(movie: Movie, navController: NavHostController){
+fun MovieInfoContent(
+    movie: Movie,
+    initialRating: Float,
+    navController: NavHostController,
+    onRatingChanged: (Float) -> Unit,
+    userRepository: UserRepository,
+    userId: String
+){
     val scrollState = rememberScrollState()
     var isFavorite by rememberSaveable { mutableStateOf(false) }
+    var rating by rememberSaveable { mutableStateOf(initialRating) }
+
+    LaunchedEffect(userId) {
+        val userDoc = FirebaseFirestore.getInstance()
+            .collection("user")
+            .document(userId)
+            .get()
+            .await()
+        val userData = userDoc.data
+        val wishList = userData?.get("wishList") as? List<String> ?: emptyList()
+        isFavorite = wishList.contains(movie.DOCID)
+    }
+
+    // 버튼 클릭 시 wishList 업데이트
+    fun toggleFavorite() {
+        isFavorite = !isFavorite
+        val addToWishList = isFavorite
+        userRepository.updateWishList(userId, movie.DOCID, addToWishList) { success ->
+            if (success) {
+                isFavorite = addToWishList
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState) // 스크롤 가능하게 설정
+            .verticalScroll(scrollState)
     ) {
         TopAppBar(
             title = {},
             navigationIcon = {
                 IconButton(
-                    onClick = {},
+                    onClick = { navController.popBackStack() },
                     modifier = Modifier.padding(vertical = 12.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -161,11 +230,16 @@ fun MovieInfoContent(movie: Movie, navController: NavHostController){
                 Icon(
                     painter = painterResource(R.drawable.ic_fullstar),
                     contentDescription = "Star Rating",
-                    tint = if (i <= 3) Color.Red else Color.LightGray,
-                    modifier = Modifier.size(40.dp)
+                    tint = if (i <= rating) Color.Red else Color.LightGray,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable {
+                            rating = i.toFloat()
+                            onRatingChanged(rating)
+                        }
                 )
                 if (i != 5) {
-                    Spacer(modifier = Modifier.width(8.dp)) // 간격 설정
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
             }
         }
@@ -182,7 +256,7 @@ fun MovieInfoContent(movie: Movie, navController: NavHostController){
                 icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 label = "보고싶어요",
                 backgroundColor = Color(0xFFE0E0E0),
-                onClick = { isFavorite = !isFavorite }
+                onClick = { toggleFavorite() }
             )
             ActionButton(
                 icon = Icons.Default.Edit,
@@ -225,7 +299,6 @@ fun MovieInfoContent(movie: Movie, navController: NavHostController){
             Text(text = movie.actors.joinToString(", "), fontSize = 14.sp, color = Color.Black)
         }
 
-        // 마지막 여백 추가
         Spacer(modifier = Modifier.height(50.dp))
     }
 }
@@ -257,21 +330,54 @@ fun ActionButton(icon: ImageVector, label: String, backgroundColor: Color, onCli
 // 한글 플롯만 추출하는 함수
 fun getKoreanPlot(plots: List<String>): String {
     return if (plots.isNotEmpty()) {
-        plots[0].replace("\n", "") // \n을 공백으로 치환
+        plots[0].replace("\n", "")
     } else {
-        "한글 설명이 없습니다." // 플롯 데이터가 없는 경우 기본 메시지
+        "한글 설명이 없습니다."
     }
 }
 
-// 런타임을 '몇시간 몇분'으로 변환하는 함수
+// 런타임 변환 함수
 fun formatRuntime(runtime: String?): String {
     if (runtime.isNullOrBlank()) return "정보 없음"
     return try {
-        val totalMinutes = runtime.toInt() // 런타임을 숫자로 변환
+        val totalMinutes = runtime.toInt()
         val hours = totalMinutes / 60
         val minutes = totalMinutes % 60
         "${hours}시간 ${minutes}분"
     } catch (e: NumberFormatException) {
         "정보 없음"
+    }
+}
+
+//
+private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
+    val firestore = FirebaseFirestore.getInstance()
+    user?.let {
+        val userId = it.uid
+        val movieRatedCollection = firestore.collection("movieRated")
+
+        movieRatedCollection
+            .whereEqualTo("movie", movie.DOCID)
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    // 기존 문서가 있으면 업데이트
+                    val existingDoc = documents.documents.first()
+                    movieRatedCollection.document(existingDoc.id).update(
+                        "score", score,
+                        "updatedTime", LocalDateTime.now()
+                    )
+                } else {
+                    // 새 문서 생성
+                    val newRating = hashMapOf(
+                        "movie" to movie.DOCID,
+                        "score" to score,
+                        "userId" to userId,
+                        "updatedTime" to LocalDateTime.now()
+                    )
+                    movieRatedCollection.add(newRating)
+                }
+            }
     }
 }
