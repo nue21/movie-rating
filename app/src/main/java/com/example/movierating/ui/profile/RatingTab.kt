@@ -38,7 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.StarRating
+//import androidx.media3.common.StarRating
 import com.example.movierating.data.Movie
 import com.example.movierating.data.MovieRated
 import com.example.movierating.ui.signIn.UserData

@@ -44,6 +44,27 @@ class UserRepository @Inject constructor(
             )
         }
     }
+
+    fun updateWishList(userId: String, movieId: String, add: Boolean, onComplete: (Boolean) -> Unit) {
+        val userDocRef = firestore.collection("user").document(userId)
+
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(userDocRef)
+            val currentWishList = snapshot.get("wishList") as? List<String> ?: emptyList()
+
+            val updatedWishList = if (add) {
+                currentWishList + movieId
+            } else {
+                currentWishList - movieId
+            }
+
+            transaction.update(userDocRef, "wishList", updatedWishList)
+        }.addOnSuccessListener {
+            onComplete(true)
+        }.addOnFailureListener {
+            onComplete(false)
+        }
+    }
 }
 
 @HiltViewModel
