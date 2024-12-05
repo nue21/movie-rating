@@ -232,7 +232,7 @@ private fun saveRating(movie: Movie, score: Float, userData: UserData?, db: Fire
                 val existingDoc = documents.documents.first()
                 val updatedData = mapOf(
                     "score" to score.toDouble(),
-                    "updatedTime" to LocalDateTime.now()
+                    "updatedTime" to Timestamp.now()
                 )
                 // 기존 문서 업데이트
                 movieRatedCollection.document(existingDoc.id).update(updatedData)
