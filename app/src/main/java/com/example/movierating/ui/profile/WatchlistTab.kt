@@ -45,7 +45,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.data.Movie
+import com.example.movierating.data.User
+import com.example.movierating.ui.signIn.UserData
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun WatchlistTab(){
@@ -88,14 +93,6 @@ fun WatchlistTab(){
         movieToDelete.value = movie
         isDeleteDialogOpen.value = true
     }*/
-
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            val fetchedMovies = fetchMoviesFromFirestore()
-            movies.value = fetchedMovies
-            isLoading.value = false // 데이터 로드 완료 후 로딩 상태 해제
-        }
-    }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),

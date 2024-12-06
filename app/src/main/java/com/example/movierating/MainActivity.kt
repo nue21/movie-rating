@@ -26,10 +26,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.movierating.data.Movie
 import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 
@@ -260,7 +263,11 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
         MovieDetailPage(modifier,  navController)
     }*/
     composable("addCollection") {
-        AddCollectionPage()
+        AddCollectionPage(modifier, navController)
+    }
+    composable(route = "addComment/{docId}") { backStackEntry ->
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        AddCommentPage(navController, modifier, docId)
     }
 }
 

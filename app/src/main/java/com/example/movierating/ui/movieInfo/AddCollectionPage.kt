@@ -37,10 +37,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddCollectionPage(modifier: Modifier = Modifier,){
+fun AddCollectionPage(modifier: Modifier = Modifier, navController: NavController){
     val collections = listOf("최애영화", "애니모음")
     var newCollectionName by remember { mutableStateOf(TextFieldValue("")) }
     var isEditing by remember { mutableStateOf(false) }
@@ -55,7 +56,7 @@ fun AddCollectionPage(modifier: Modifier = Modifier,){
                 )
             },
             navigationIcon = {
-                IconButton(onClick = {  }) {
+                IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
                         contentDescription = "Close",

@@ -46,6 +46,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDateTime
+import com.google.firebase.Timestamp
 
 @Composable
 fun MovieDetailPage(
@@ -205,7 +206,7 @@ fun MovieInfoContent(
                     Text(text = movie.title, fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "2004 · ${movie.genre}",
+                        text = "${movie.year} · ${movie.genre}",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
@@ -262,7 +263,7 @@ fun MovieInfoContent(
                 icon = Icons.Default.Edit,
                 label = "코멘트",
                 backgroundColor = Color(0xFFE0E0E0),
-                onClick = {}
+                onClick = { navController.navigate("addComment/${movie.DOCID}") }
             )
             ActionButton(
                 icon = Icons.Default.Menu,
@@ -349,7 +350,6 @@ fun formatRuntime(runtime: String?): String {
     }
 }
 
-//
 private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
     val firestore = FirebaseFirestore.getInstance()
     user?.let {
@@ -366,7 +366,7 @@ private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
                     val existingDoc = documents.documents.first()
                     movieRatedCollection.document(existingDoc.id).update(
                         "score", score,
-                        "updatedTime", LocalDateTime.now()
+                        "updatedTime", Timestamp.now()
                     )
                 } else {
                     // 새 문서 생성
@@ -374,7 +374,7 @@ private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
                         "movie" to movie.DOCID,
                         "score" to score,
                         "userId" to userId,
-                        "updatedTime" to LocalDateTime.now()
+                        "updatedTime" to Timestamp.now()
                     )
                     movieRatedCollection.add(newRating)
                 }
