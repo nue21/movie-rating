@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -47,6 +48,8 @@ import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.Timestamp
 import java.time.LocalDateTime
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 
 @Composable
 fun MovieDetailPage(
@@ -206,7 +209,7 @@ fun MovieInfoContent(
                     Text(text = movie.title, fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "2004 · ${movie.genre}",
+                        text = "${movie.year} · ${movie.genre}",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
@@ -263,13 +266,13 @@ fun MovieInfoContent(
                 icon = Icons.Default.Edit,
                 label = "코멘트",
                 backgroundColor = Color(0xFFE0E0E0),
-                onClick = {}
+                onClick = { navController.navigate("addComment/${movie.DOCID}") }
             )
             ActionButton(
                 icon = Icons.Default.Menu,
                 label = "컬렉션",
                 backgroundColor = Color(0xFFE0E0E0),
-                onClick = { navController.navigate("addCollection") }
+                onClick = { navController.navigate("addCollection/${movie.DOCID}") }
             )
         }
 
@@ -350,12 +353,12 @@ fun formatRuntime(runtime: String?): String {
     }
 }
 
-//
 private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
     val firestore = FirebaseFirestore.getInstance()
     user?.let {
         val userId = it.uid
         val movieRatedCollection = firestore.collection("movieRated")
+        val userCollection = firestore.collection("user").document(userId)
 
         movieRatedCollection
             .whereEqualTo("movie", movie.DOCID)
@@ -378,7 +381,23 @@ private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
                         "updatedTime" to Timestamp.now()
                     )
                     movieRatedCollection.add(newRating)
+                        .addOnSuccessListener { documentReference ->
+                            val documentId = documentReference.id  //문서 ID 가져오기
+
+                            // user의 movieRatedList 업데이트
+                            userCollection.update("movieRatedList", FieldValue.arrayUnion(documentId))
+                                .addOnSuccessListener {
+                                    println("movieRatedList updated successfully")
+                                }
+                                .addOnFailureListener { e ->
+                                    println("Failed to update movieRatedList: ${e.message}")
+                                }
+                        }
+                        .addOnFailureListener { e ->
+                            println("Failed to add new rating: ${e.message}")
+                        }
                 }
+
             }
     }
 }

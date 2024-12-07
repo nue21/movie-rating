@@ -32,6 +32,7 @@ import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.movierating.data.Movie
 import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 
@@ -258,11 +259,13 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
     composable("rate") {
         RatePage(modifier)
     }
-    /*composable("movieDetail") {
-        MovieDetailPage(modifier,  navController)
-    }*/
-    composable("addCollection") {
-        AddCollectionPage()
+    composable("addCollection/{docId}") { backStackEntry -> // docId를 경로 변수로 추가
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        AddCollectionPage(modifier, navController, docId) // AddCollectionPage에 docId 전달
+    }
+    composable(route = "addComment/{docId}") { backStackEntry ->
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        AddCommentPage(navController, modifier, docId)
     }
 }
 
@@ -288,13 +291,8 @@ fun NavGraphBuilder.profileGraph(navController: NavHostController, modifier: Mod
     composable("profile") {
         ProfilePage(modifier, navController)
     }
-    composable(
-        "collectionDetailPage/{collectionId}",
-        arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
-    ) { backStackEntry ->
-        val collectionId = backStackEntry.arguments?.getString("collectionId")
-        // collectionId를 사용하여 컬렉션 정보 로딩 등 처리
-        CollectionDetailPage(modifier = modifier, navController = navController, collectionId = collectionId)
+    composable("collectionDetail"){
+        CollectionDetailPage(modifier, navController)
     }
 }
 
