@@ -12,6 +12,7 @@ data class Collections (
 ){
     fun toMap(): Map<String, Any?> {
         return mapOf(
+            "userId" to userId,
             "collectionName" to collectionName,
             "movieList" to movieList,
             "updateTime" to updatedTime,
