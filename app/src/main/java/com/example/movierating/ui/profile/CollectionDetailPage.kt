@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.movierating.data.Collections
 import com.example.movierating.data.Movie
+import com.example.movierating.data.MovieRated
 import com.example.movierating.ui.signIn.UserData
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -173,17 +174,43 @@ fun CollectionDetailPage(
             // 영화 목록 표시
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(movies.value) { movie ->
-                    // 별점 상태를 별도로 관리
-                    var rating by remember { mutableStateOf(0f) }
-                    MovieCard(
-                        movie = movie,
-                        rating = rating,
-                        showComments = showComments.value, // 코멘트 표시 여부 전달
-                        onRatingChanged = { newRating ->
-                            rating = newRating
-                        },
-                        comment = ""
-                    )
+                    // 로딩 상태와 별점 상태를 관리하는 변수
+                    var rating by remember { mutableStateOf<Float?>(null) }
+                    var isLoading by remember { mutableStateOf(true) }
+
+                    // 비동기 Firestore 데이터 가져오기
+                    LaunchedEffect(movie.DOCID) {
+                        db.collection("movieRated")
+                            .whereEqualTo("movie", movie.DOCID)
+                            .whereEqualTo("userId", userData.value?.userId)
+                            .get()
+                            .addOnSuccessListener { documents ->
+                                for (document in documents) {
+                                    val movieRated = document.toObject(MovieRated::class.java)
+                                    rating = movieRated.score?.toFloat()
+                                }
+                                isLoading = false // 데이터 로딩 완료
+                            }
+                            .addOnFailureListener { exception ->
+                                Log.w("Firestore", "Error getting documents: ", exception)
+                                isLoading = false // 오류 발생 시 로딩 완료 처리
+                            }
+                    }
+
+                    // 데이터가 로딩 중일 때는 아무것도 렌더링하지 않거나 로딩 표시
+                    if (isLoading) {
+                        // 로딩 표시, 예를 들어 CircularProgressIndicator
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    } else {
+                        // 별점 정보가 로드되었으면 MovieCard 렌더링
+                        MovieCard(
+                            movie = movie,
+                            rating = rating ?: 0f, // rating 값이 null인 경우 기본값 0f
+                            showComments = showComments.value, // 코멘트 표시 여부 전달
+                            onRatingChanged = { newRating -> rating = newRating },
+                            comment = ""
+                        )
+                    }
                 }
             }
         }

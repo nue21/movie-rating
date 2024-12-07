@@ -172,14 +172,6 @@ fun CollectionTab(navController: NavController) {
                         DropdownMenuItem(
                             onClick = {
                                 isMenuExpanded.value = false
-                                val newCollection = Collections()
-                                addCollectionToFirestore(newCollection)
-                            },
-                            text = { Text("새 컬렉션 추가") }
-                        )
-                        DropdownMenuItem(
-                            onClick = {
-                                isMenuExpanded.value = false
                                 isEditSelected.value = true
                                 // "컬렉션 편집" 동작
                             },
@@ -323,7 +315,7 @@ fun addCollectionToFirestore(collection: Collections) {
 
     try {
         // "Collections" 컬렉션에 새로운 문서를 추가 (자동 ID 생성)
-        db.collection("Collections")
+        db.collection("collections")
             .add(collectionMap) // 비동기적으로 Firestore 작업 완료까지 대기
 
         println("Collection added successfully")
