@@ -57,6 +57,8 @@ import com.example.movierating.ui.search.SearchViewModelFactory
 import com.example.movierating.ui.signIn.GoogleAuthUiClient
 import com.example.movierating.ui.signIn.SignInEmailPage
 import com.example.movierating.ui.signIn.SignInEmailViewModel
+import com.example.movierating.ui.signUp.SignUpPage
+import com.example.movierating.ui.signUp.SignUpViewModel
 import com.example.movierating.ui.user.UserViewModel
 import com.google.android.gms.auth.api.identity.Identity
 import dagger.hilt.android.AndroidEntryPoint
@@ -103,7 +105,15 @@ class MainActivity : ComponentActivity() {
 
                         SignInEmailPage(navController = navController)
                     }
-                    // 2. MainNav
+                    // 2. SignUpPage
+                    composable("signUp"){
+                        val signInViewModel = viewModel<SignUpViewModel>()
+                        val signInState by signInViewModel.state.collectAsStateWithLifecycle()
+
+                        SignUpPage(navController = navController)
+                    }
+
+                    // 3. MainNav
                     composable("main") {
                         val context = LocalContext.current
                         val lifecycleOwner = LocalLifecycleOwner.current
@@ -124,7 +134,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
-
+                        /*
                         // 이메일, 비밀번호로 자동 로그인 호출
                         LaunchedEffect(Unit) {
                             try {
@@ -143,8 +153,9 @@ class MainActivity : ComponentActivity() {
                                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         }
-                    }
 
+                         */
+                    }
                 }
             }
         }
