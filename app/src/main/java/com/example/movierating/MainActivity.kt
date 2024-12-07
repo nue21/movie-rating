@@ -259,11 +259,9 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
     composable("rate") {
         RatePage(modifier)
     }
-    /*composable("movieDetail") {
-        MovieDetailPage(modifier,  navController)
-    }*/
-    composable("addCollection") {
-        AddCollectionPage(modifier, navController)
+    composable("addCollection/{docId}") { backStackEntry -> // docId를 경로 변수로 추가
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        AddCollectionPage(modifier, navController, docId) // AddCollectionPage에 docId 전달
     }
     composable(route = "addComment/{docId}") { backStackEntry ->
         val docId = backStackEntry.arguments?.getString("docId") ?: ""

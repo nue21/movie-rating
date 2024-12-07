@@ -1,6 +1,10 @@
 package com.example.movierating.ui.profile
 
+import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -62,6 +67,32 @@ fun WatchlistTab(){
     val isEditing = remember { mutableStateOf(false) } // 편집 모드 상태
     val isDeleteDialogOpen = remember { mutableStateOf(false) } // 삭제 팝업 상태
     val movieToDelete = remember { mutableStateOf<Movie?>(null) } // 삭제할 영화 정보
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val firestore = FirebaseFirestore.getInstance()
+    val selectedMovies = remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            firestore.collection("user")
+                .whereEqualTo("userId", currentUser.uid)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (!documents.isEmpty) {
+                        val user = documents.documents.first().toObject(User::class.java)
+                        user?.wishList?.let { wishList ->
+                            loadMoviesFromWishList(wishList, movies, isLoading)
+                        }
+                    } else {
+                        Log.e("WatchlistTab", "No user data found")
+                        isLoading.value = false
+                    }
+                }
+                .addOnFailureListener { exception ->
+                    Log.e("WatchlistTab", "Failed to load user data", exception)
+                    isLoading.value = false
+                }
+        }
+    }
 
     // 필터 버튼 클릭 시 처리
     val onFilterClick = {
@@ -71,6 +102,7 @@ fun WatchlistTab(){
             movies.value // 필터 해제 시 모든 영화 표시
         }*/
         if(isEditing.value){
+            selectedMovies.value = emptySet()
             isEditing.value = false
             isFilterApplied.value = isFilterApplied.value
         }
@@ -173,15 +205,27 @@ fun WatchlistTab(){
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(4.dp)
                     ){
-                        Image(
-                            painter = rememberAsyncImagePainter(movie.posters),
-                            contentScale = ContentScale.Crop,
-                            contentDescription = "Movie Poster",
+                        Box(
                             modifier = Modifier
                                 .padding(4.dp)
-                                .aspectRatio(2f/3f)
+                                .aspectRatio(2f / 3f)
                                 .clip(RoundedCornerShape(8.dp))
-                        )
+                                .border(
+                                    width = if (selectedMovies.value.contains(movie.DOCID)) 2.dp else 0.dp,
+                                    color = Color.Black,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable(enabled = isEditing.value) {
+                                    toggleSelection(movie.DOCID, selectedMovies)
+                                }
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(movie.posters),
+                                contentScale = ContentScale.Crop,
+                                contentDescription = "Movie Poster",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                         Text(
                             text = movie.title,
                             fontSize = 12.sp,
@@ -235,4 +279,47 @@ fun DeleteDialog(
             }
         }
     )
+}
+
+private fun toggleSelection(movieId: String, selectedMovies: MutableState<Set<String>>) {
+    val updatedSet = selectedMovies.value.toMutableSet()
+    if (updatedSet.contains(movieId)) {
+        updatedSet.remove(movieId)
+    } else {
+        updatedSet.add(movieId)
+    }
+    selectedMovies.value = updatedSet
+}
+
+private fun loadMoviesFromWishList(
+    wishList: List<String>,
+    movies: MutableState<List<Movie>>,
+    isLoading: MutableState<Boolean>
+) {
+    val firestore = FirebaseFirestore.getInstance()
+    val movieList = mutableListOf<Movie>()
+    val remainingCount = mutableStateOf(wishList.size)
+
+    wishList.forEach { movieId ->
+        firestore.collection("movies")
+            .document(movieId)
+            .get()
+            .addOnSuccessListener { document ->
+                document.toObject(Movie::class.java)?.let { movie ->
+                    movieList.add(movie)
+                }
+                remainingCount.value -= 1
+                if (remainingCount.value == 0) {
+                    movies.value = movieList
+                    isLoading.value = false
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("WatchlistTab", "Failed to load movie $movieId", exception)
+                remainingCount.value -= 1
+                if (remainingCount.value == 0) {
+                    isLoading.value = false
+                }
+            }
+    }
 }
