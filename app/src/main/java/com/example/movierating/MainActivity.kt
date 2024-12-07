@@ -26,10 +26,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 
@@ -286,8 +288,13 @@ fun NavGraphBuilder.profileGraph(navController: NavHostController, modifier: Mod
     composable("profile") {
         ProfilePage(modifier, navController)
     }
-    composable("collectionDetail"){
-        CollectionDetailPage(modifier, navController)
+    composable(
+        "collectionDetailPage/{collectionId}",
+        arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val collectionId = backStackEntry.arguments?.getString("collectionId")
+        // collectionId를 사용하여 컬렉션 정보 로딩 등 처리
+        CollectionDetailPage(modifier = modifier, navController = navController, collectionId = collectionId)
     }
 }
 

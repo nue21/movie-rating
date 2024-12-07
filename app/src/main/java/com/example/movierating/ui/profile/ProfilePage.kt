@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.movierating.R
+import com.example.movierating.data.Collections
 import com.example.movierating.data.Movie
 import com.example.movierating.data.MovieRated
 import com.google.firebase.firestore.FirebaseFirestore
@@ -137,6 +138,27 @@ fun ProfileTabNav(navController: NavController) {
                 2 -> CollectionTab(navController = navController)
             }
         }
+    }
+}
+
+// 12-07 추가됨 fetchCollectionMoviesFromFirestore
+
+suspend fun fetchCollectionMoviesFromFirestore(): List<Collections> {
+    val db = FirebaseFirestore.getInstance() // Firestore 인스턴스
+    val collectionsRef = db.collection("collections")
+
+    return try {
+        val querySnapshot = collectionsRef.get().await()
+        if (querySnapshot.isEmpty) {
+            emptyList()
+        } else {
+            querySnapshot.documents.mapNotNull { document ->
+                document.toObject(Collections::class.java)
+            }
+        }
+    } catch (exception: Exception) {
+        Log.e("FirestoreDebug", "Error fetching 'movieRated' collection", exception)
+        emptyList()
     }
 }
 

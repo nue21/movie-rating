@@ -1,5 +1,6 @@
 package com.example.movierating.ui.profile
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.data.Movie
+import com.example.movierating.ui.signIn.UserData
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @Composable
@@ -57,6 +61,32 @@ fun WatchlistTab(){
     val isEditing = remember { mutableStateOf(false) } // 편집 모드 상태
     val isDeleteDialogOpen = remember { mutableStateOf(false) } // 삭제 팝업 상태
     val movieToDelete = remember { mutableStateOf<Movie?>(null) } // 삭제할 영화 정보
+
+    val user = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val userData = remember { mutableStateOf<UserData?>(null) }
+
+    LaunchedEffect(user) {
+        user?.let {
+            val userId = it.uid
+            // Firestore에서 해당 userId로 문서 조회
+            db.collection("user")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (!documents.isEmpty) {
+                        // 첫 번째 문서를 UserData 객체로 변환
+                        val document = documents.documents.first()
+                        userData.value = document.toObject(UserData::class.java)
+                    } else {
+                        Log.d("Firestore", "No matching user found")
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Firestore", "Error querying user data", e)
+                }
+        }
+    }
 
     // 필터 버튼 클릭 시 처리
     val onFilterClick = {
@@ -156,6 +186,9 @@ fun WatchlistTab(){
             CircularProgressIndicator()
         }
     } else{
+        val filteredMovies = movies.value.filter { movie ->
+            userData.value?.wishList?.contains(movie.DOCID) == true
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -171,7 +204,7 @@ fun WatchlistTab(){
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(movies.value) { movie ->
+                items(filteredMovies) { movie ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(4.dp)

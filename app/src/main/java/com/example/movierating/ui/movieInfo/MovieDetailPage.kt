@@ -45,6 +45,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.Timestamp
 import java.time.LocalDateTime
 
 @Composable
@@ -366,7 +367,7 @@ private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
                     val existingDoc = documents.documents.first()
                     movieRatedCollection.document(existingDoc.id).update(
                         "score", score,
-                        "updatedTime", LocalDateTime.now()
+                        "updatedTime", Timestamp.now()
                     )
                 } else {
                     // 새 문서 생성
@@ -374,7 +375,7 @@ private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
                         "movie" to movie.DOCID,
                         "score" to score,
                         "userId" to userId,
-                        "updatedTime" to LocalDateTime.now()
+                        "updatedTime" to Timestamp.now()
                     )
                     movieRatedCollection.add(newRating)
                 }
