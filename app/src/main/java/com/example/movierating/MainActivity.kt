@@ -291,8 +291,13 @@ fun NavGraphBuilder.profileGraph(navController: NavHostController, modifier: Mod
     composable("profile") {
         ProfilePage(modifier, navController)
     }
-    composable("collectionDetail"){
-        CollectionDetailPage(modifier, navController)
+    composable(
+        "collectionDetailPage/{collectionId}",
+        arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val collectionId = backStackEntry.arguments?.getString("collectionId")
+        // collectionId를 사용하여 컬렉션 정보 로딩 등 처리
+        CollectionDetailPage(modifier = modifier, navController = navController, collectionId = collectionId)
     }
 }
 
