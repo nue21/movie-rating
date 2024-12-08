@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -20,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -37,17 +39,19 @@ import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 
 import com.example.movierating.ui.home.HomePage
+import com.example.movierating.ui.home.WordlCupViewModel
 import com.example.movierating.ui.home.WorldCupPage
-import com.example.movierating.ui.movieInfo.AddCommentPage
+import com.example.movierating.ui.home.WorldCupPlayPage
+import com.example.movierating.ui.home.WorldCupResultDetail
+import com.example.movierating.ui.home.WorldCupResultPage
 
 import com.example.movierating.ui.movieInfo.AddCollectionPage
+import com.example.movierating.ui.movieInfo.AddCommentPage
 
 import com.example.movierating.ui.movieInfo.MovieDetailPage
 import com.example.movierating.ui.profile.ProfilePage
 
 import com.example.movierating.ui.profile.CollectionDetailPage
-
-import com.example.movierating.ui.profile.WatchlistTab
 
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
@@ -55,14 +59,15 @@ import com.example.movierating.ui.search.SearchResultPage
 import com.example.movierating.ui.search.SearchViewModel
 import com.example.movierating.ui.search.SearchViewModelFactory
 import com.example.movierating.ui.signIn.GoogleAuthUiClient
-import com.example.movierating.ui.signIn.SignInPage
-import com.example.movierating.ui.signIn.SignInViewModel
+import com.example.movierating.ui.signIn.SignInEmailPage
+import com.example.movierating.ui.signIn.SignInEmailViewModel
+import com.example.movierating.ui.signUp.SignUpPage
+import com.example.movierating.ui.signUp.SignUpViewModel
 import com.example.movierating.ui.user.UserViewModel
-import com.google.android.gms.auth.api.identity.Identity
+//import com.google.android.gms.auth.api.identity.Identity
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.launch
-import java.io.FileInputStream
 
 @HiltAndroidApp
 class MyApplication : Application() {
@@ -76,17 +81,8 @@ class MainActivity : ComponentActivity() {
     // user 정보 view model
     private val userViewModel: UserViewModel by viewModels()
 
-    // 로그인을 위한 UiClient
-    private val googleAuthUiClient by lazy {
-        GoogleAuthUiClient(
-            context = applicationContext,
-            oneTapClient = Identity.getSignInClient(applicationContext)
-        )
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             MovieRatingTheme {
                 val navController = rememberNavController()
@@ -95,67 +91,22 @@ class MainActivity : ComponentActivity() {
                  * 1. SignInPage : 구글 로그인 버튼 (비로그인 상태 : userData가 null일 때 보여짐)
                  * 2. MainNav : 본격적인 서비스를 이용할 수 있는 navigator (로그인 상태 : userData가 null이 아님)
                  */
-                NavHost(navController = navController, startDestination = "main") {
+                NavHost(navController = navController, startDestination = "signIn") {
                     // 1. SignInPage
                     composable("signIn") {
-                        val signInViewModel = viewModel<SignInViewModel>()
+                        val signInViewModel = viewModel<SignInEmailViewModel>()
                         val signInState by signInViewModel.state.collectAsStateWithLifecycle()
-                        // 로그인되어 있으면 바로 MainNav으로 이동
-                        LaunchedEffect(key1 = Unit) {
-                            println("집중"+userViewModel.userData.value)
-                            if (userViewModel.userData.value != null)
-                                navController.navigate("main")
-                        }
-
-                        // SignInPage의 onSignInClick 실행 후 launcher 실행
-                        val launcher = rememberLauncherForActivityResult(
-                            contract = ActivityResultContracts.StartIntentSenderForResult(),
-                            onResult = { result ->
-                                if (result.resultCode == RESULT_OK) {
-                                    lifecycleScope.launch {
-                                        lifecycleScope.launch {
-                                            // 로그인 성공 시 result.data에는 UserData
-                                            // 로그인 실패 시 result.data에는 null
-                                            val signInResult = googleAuthUiClient.signInWithIntent(
-                                                intent = result.data ?: return@launch
-                                            )
-                                            // 로그인 성공 여부에 따라 signInState 값을 바꿈
-                                            signInViewModel.onSignInResult(signInResult)
-                                        }
-                                    }
-                                }
-                            }
-                        )
-
-                        // signInState가 성공일 때 MainNav으로 이동
-                        LaunchedEffect(key1 = signInState.isSignInSuccessful) {
-                            if(signInState.isSignInSuccessful) {
-                                Toast.makeText(
-                                    applicationContext,
-                                    "로그인 성공",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                navController.navigate("main")
-                                signInViewModel.resetState()
-                            }
-                        }
-
-                        SignInPage(
-                            state = signInState,
-                            onSignInClick = {
-                                lifecycleScope.launch {
-                                    val signInIntentSender = googleAuthUiClient.signIn()
-                                    launcher.launch(
-                                        IntentSenderRequest.Builder(
-                                            signInIntentSender ?: return@launch
-                                        ).build()
-                                    )
-                                }
-                            }
-                        )
+                        SignInEmailPage(navController = navController)
                     }
-                    // 2. MainNav
+                    // 2. SignUpPage
+                    composable("signUp"){
+                        val signInViewModel = viewModel<SignUpViewModel>()
+                        val signInState by signInViewModel.state.collectAsStateWithLifecycle()
+
+                        SignUpPage(navController = navController)
+                    }
+
+                    // 3. MainNav
                     composable("main") {
                         val context = LocalContext.current
                         val lifecycleOwner = LocalLifecycleOwner.current
@@ -164,7 +115,6 @@ class MainActivity : ComponentActivity() {
                         MainNavHost(
                             onSignOut = {
                                 lifecycleOwner.lifecycleScope.launch {
-                                    googleAuthUiClient.signOut()    // 로그아웃
                                     userViewModel.resetUserData()   // userData -> null
                                     Toast.makeText(
                                         context,
@@ -174,9 +124,10 @@ class MainActivity : ComponentActivity() {
 
                                     navController.navigate("signIn")   // 화면 이동
                                 }
-                            }
+                            },
+                            userViewModel
                         )
-
+                        /*
                         // 이메일, 비밀번호로 자동 로그인 호출
                         LaunchedEffect(Unit) {
                             try {
@@ -195,17 +146,20 @@ class MainActivity : ComponentActivity() {
                                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         }
-                    }
 
+                         */
+                    }
                 }
             }
         }
     }
 }
 
+@RequiresApi(35)
 @Composable
 fun MainNavHost (
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    userViewModel: UserViewModel
 ) {
     val navController = rememberNavController()
 
@@ -216,6 +170,9 @@ fun MainNavHost (
     )
     searchViewModel.loadSearchHistory()
 
+    var worldCupViewModel: WordlCupViewModel = hiltViewModel()
+
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -223,15 +180,22 @@ fun MainNavHost (
         }
     ) { innerPadding ->
         NavHost(navController = navController, startDestination = "home") {
-            homeGraph(navController, Modifier.padding(innerPadding), onSignOut)
-            searchGraph(navController = navController, modifier = Modifier.padding(innerPadding), searchViewModel)
+            homeGraph(navController, Modifier.padding(innerPadding), onSignOut, userViewModel, worldCupViewModel)
+            searchGraph(navController, Modifier.padding(innerPadding), searchViewModel)
             rateGraph(navController, Modifier.padding(innerPadding))
             profileGraph(navController, Modifier.padding(innerPadding))
         }
     }
 }
 
-fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit) {
+
+fun NavGraphBuilder.homeGraph(
+    navController: NavHostController,   
+    modifier: Modifier, 
+    onSignOut: () -> Unit,
+    userViewModel: UserViewModel,
+    worldCupViewModel:WordlCupViewModel
+) {
     composable("home") {
         HomePage(
             modifier,
@@ -245,7 +209,20 @@ fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifi
         )
     }
     composable("worldCup") {
-        WorldCupPage(modifier)
+        WorldCupPage(navController, userViewModel, worldCupViewModel)
+    }
+    composable(
+        route = "worldCupPlay/{round}",
+        arguments = listOf(navArgument("round") { type = NavType.StringType })
+    ) {
+        val round = it.arguments?.getString("round") ?: "No Data"
+        WorldCupPlayPage(navController, worldCupViewModel)
+    }
+    composable("worldCupResult") {
+        WorldCupResultPage(navController,worldCupViewModel)
+    }
+    composable("worldCupResultDetail") {
+        WorldCupResultDetail(navController, worldCupViewModel)
     }
 
     // MovieDetailPage 추가
@@ -270,6 +247,7 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
 }
 
 
+@RequiresApi(35)
 fun NavGraphBuilder.searchGraph(navController: NavHostController, modifier: Modifier, searchViewModel: SearchViewModel) {
     composable("search") {
         SearchPage(
@@ -282,7 +260,8 @@ fun NavGraphBuilder.searchGraph(navController: NavHostController, modifier: Modi
         SearchResultPage(
             modifier,
             searchViewModel,
-            backToSearchPage = { navController.navigateUp() }
+            backToSearchPage = { navController.navigateUp() },
+            goToDetailPage = { navController.navigate("movieDetail/${it}") }
         )
     }
 }
@@ -291,8 +270,13 @@ fun NavGraphBuilder.profileGraph(navController: NavHostController, modifier: Mod
     composable("profile") {
         ProfilePage(modifier, navController)
     }
-    composable("collectionDetail"){
-        CollectionDetailPage(modifier, navController)
+    composable(
+        "collectionDetailPage/{collectionId}",
+        arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val collectionId = backStackEntry.arguments?.getString("collectionId")
+        // collectionId를 사용하여 컬렉션 정보 로딩 등 처리
+        CollectionDetailPage(modifier = modifier, navController = navController, collectionId = collectionId)
     }
 }
 

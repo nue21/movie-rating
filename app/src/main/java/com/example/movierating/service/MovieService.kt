@@ -33,7 +33,7 @@ class MovieService(private val context: Context) {  // Context를 생성자에�
 
                 // Movie 데이터 클래스에 필요한 정보 추출
                 val docId = resultObject.get("DOCID")?.asString ?: ""
-                val title = resultObject.get("title")?.asString ?: ""
+                val title = resultObject.get("title")?.asString?.trim() ?: ""
                 val nation = resultObject.get("nation")?.asString ?: ""
 
                 // directors 필드: 감독 이름만 추출

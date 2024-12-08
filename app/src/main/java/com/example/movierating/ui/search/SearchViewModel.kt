@@ -3,15 +3,24 @@ package com.example.movierating.ui.search
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import androidx.compose.runtime.MutableState
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.movierating.data.Movie
+import com.example.movierating.ui.signIn.UserData
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 
 // 이전 검색기록 (로컬 스토리지 저장)을 가져오기 위해선 SharedPreferences기능 필요
@@ -20,14 +29,17 @@ import com.google.gson.reflect.TypeToken
 // => context를 받을 필요없으면 이와같이 할 필요 없음!
 class SearchViewModel(private val context: Context) :ViewModel() {
     private var sharedPreferences by mutableStateOf<SharedPreferences>(context.getSharedPreferences("search_history", Context.MODE_PRIVATE))
-
-    // 검색어
-    var searchInput by mutableStateOf("")
-        private set
-
+    // 사용자 입력을 받는 StateFlow
+    private val _searchInput = MutableStateFlow("")
+    val searchInput: StateFlow<String> = _searchInput
     // 이전 검색어
     private var _searchHistory = mutableStateOf<List<String>>(emptyList())
     val searchHistory: State<List<String>> = _searchHistory
+    // 영화 목록을 담는 StateFlow
+    private val _resultMovies = mutableStateOf<List<Movie>>(emptyList())
+    val resultMovies: State<List<Movie>> = _resultMovies
+    // Firestore 인스턴스
+    private val moviesRef = FirebaseFirestore.getInstance().collection("movies")
 
     // JSON 문자열을 리스트로 변환하여 불러오는 함수
     fun loadSearchHistory() {
@@ -44,7 +56,7 @@ class SearchViewModel(private val context: Context) :ViewModel() {
 
     // 검색어 업데이트
     fun updateSearchInput(newString: String) {
-        searchInput = newString
+        _searchInput.value = newString
     }
 
     // search history 리셋 빈배열로 만들기
@@ -54,14 +66,15 @@ class SearchViewModel(private val context: Context) :ViewModel() {
     }
 
     // JSON 문자열을 리스트로 변환하여 불러오는 함수
+    @RequiresApi(35)
     fun updateSearchHistory() {
         val updatedHistory = _searchHistory.value.toMutableList()
         // 검색 기록에 있는 검색어를 검색했으면 지우고 맨앞에 추가
-        if(searchInput in _searchHistory.value) updatedHistory.remove(searchInput)
+        if(searchInput.value in _searchHistory.value) updatedHistory.remove(searchInput.value)
         // 검색 기록이 21개 이상이면 가장 마지막 검색어를 지움
         if (updatedHistory.size > 20) updatedHistory.removeLast()
         // 새로운 검색어를 리스트 앞에 추가
-        updatedHistory.add(0, searchInput)
+        updatedHistory.add(0, searchInput.value)
 
         saveSearchHistory(sharedPreferences, updatedHistory)
         val jsonString = sharedPreferences.getString("search_history", null)
@@ -81,6 +94,45 @@ class SearchViewModel(private val context: Context) :ViewModel() {
         editor.putString("search_history", jsonString)
         editor.commit()
     }
+
+    // searchInput 변경 시마다 Firestore에서 쿼리 실행
+    init {
+        viewModelScope.launch {
+            searchInput
+                .debounce(500)
+                .collect { input ->
+                    println("searchInput "+input)
+                // 입력값이 비어있으면 바로 반환
+                if (input.isBlank()) {
+                    _resultMovies.value = emptyList()
+                    return@collect
+                }
+
+                // 검색어에 맞는 쿼리 실행
+                searchMovies(input)
+            }
+        }
+    }
+
+    // 영화 검색 함수
+    private suspend fun searchMovies(input: String) {
+        val querySnapshot = moviesRef
+            .whereGreaterThanOrEqualTo("title", input)
+            .whereLessThanOrEqualTo("title", input + '\uf8ff')
+            .get()
+            .await()
+
+        if (querySnapshot.isEmpty) {
+            Log.d("MovieSearch", "No movies found: $input")
+            _resultMovies.value = emptyList()
+        } else {
+            val movieList = querySnapshot.mapNotNull { document ->
+                document.toObject(Movie::class.java)
+            }
+            _resultMovies.value = movieList
+        }
+    }
+
 }
 
 class SearchViewModelFactory(private val context: Context) : ViewModelProvider.Factory {

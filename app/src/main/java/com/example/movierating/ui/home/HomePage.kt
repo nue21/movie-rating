@@ -72,29 +72,11 @@ fun HomePage (
     ) {
         // profile에 들어가야할 부분인데 merge하면서 겹칠까봐 일단은 home에 만들어뒀습니다.
         // 불러오는 방법 참고하셔서 profile에 적용시키면 될 것 같아요.
-        if(userData?.profilePictureUrl != null) {
-            AsyncImage(
-                model = userData.profilePictureUrl,
-                contentDescription = "Profile picture",
-                modifier = Modifier
-                    .size(150.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        if(userData?.username != null) {
-            Text(
-                text = userData.username,
-                fontSize = 36.sp
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        // |_> 삭제했습니다.
 
         Button(onClick = onSignOut) {
             Text(text = "Sign out")
         }
-
         /////////////////////////////////////////////////////////
 
         AdBanner()
@@ -102,7 +84,8 @@ fun HomePage (
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             WorldCupButton(onClickWorldCup = goToWorldCupPage)
             moviesByGenre.value.forEach { (genre, movies) ->
@@ -194,7 +177,7 @@ fun WorldCupButton (
                     colors = listOf(Color(0xFFFC6767), Color(0xFFFF947D))
                 )
             )
-            .clickable { onClickWorldCup }
+            .clickable { onClickWorldCup() }
             .padding(16.dp)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
