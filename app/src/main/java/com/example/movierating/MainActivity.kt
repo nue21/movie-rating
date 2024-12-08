@@ -55,8 +55,10 @@ import com.example.movierating.ui.search.SearchResultPage
 import com.example.movierating.ui.search.SearchViewModel
 import com.example.movierating.ui.search.SearchViewModelFactory
 import com.example.movierating.ui.signIn.GoogleAuthUiClient
-import com.example.movierating.ui.signIn.SignInPage
-import com.example.movierating.ui.signIn.SignInViewModel
+import com.example.movierating.ui.signIn.SignInEmailPage
+import com.example.movierating.ui.signIn.SignInEmailViewModel
+import com.example.movierating.ui.signUp.SignUpPage
+import com.example.movierating.ui.signUp.SignUpViewModel
 import com.example.movierating.ui.user.UserViewModel
 import com.google.android.gms.auth.api.identity.Identity
 import dagger.hilt.android.AndroidEntryPoint
@@ -95,67 +97,23 @@ class MainActivity : ComponentActivity() {
                  * 1. SignInPage : 구글 로그인 버튼 (비로그인 상태 : userData가 null일 때 보여짐)
                  * 2. MainNav : 본격적인 서비스를 이용할 수 있는 navigator (로그인 상태 : userData가 null이 아님)
                  */
-                NavHost(navController = navController, startDestination = "main") {
+                NavHost(navController = navController, startDestination = "signIn") {
                     // 1. SignInPage
                     composable("signIn") {
-                        val signInViewModel = viewModel<SignInViewModel>()
+                        val signInViewModel = viewModel<SignInEmailViewModel>()
                         val signInState by signInViewModel.state.collectAsStateWithLifecycle()
-                        // 로그인되어 있으면 바로 MainNav으로 이동
-                        LaunchedEffect(key1 = Unit) {
-                            println("집중"+userViewModel.userData.value)
-                            if (userViewModel.userData.value != null)
-                                navController.navigate("main")
-                        }
 
-                        // SignInPage의 onSignInClick 실행 후 launcher 실행
-                        val launcher = rememberLauncherForActivityResult(
-                            contract = ActivityResultContracts.StartIntentSenderForResult(),
-                            onResult = { result ->
-                                if (result.resultCode == RESULT_OK) {
-                                    lifecycleScope.launch {
-                                        lifecycleScope.launch {
-                                            // 로그인 성공 시 result.data에는 UserData
-                                            // 로그인 실패 시 result.data에는 null
-                                            val signInResult = googleAuthUiClient.signInWithIntent(
-                                                intent = result.data ?: return@launch
-                                            )
-                                            // 로그인 성공 여부에 따라 signInState 값을 바꿈
-                                            signInViewModel.onSignInResult(signInResult)
-                                        }
-                                    }
-                                }
-                            }
-                        )
-
-                        // signInState가 성공일 때 MainNav으로 이동
-                        LaunchedEffect(key1 = signInState.isSignInSuccessful) {
-                            if(signInState.isSignInSuccessful) {
-                                Toast.makeText(
-                                    applicationContext,
-                                    "로그인 성공",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                navController.navigate("main")
-                                signInViewModel.resetState()
-                            }
-                        }
-
-                        SignInPage(
-                            state = signInState,
-                            onSignInClick = {
-                                lifecycleScope.launch {
-                                    val signInIntentSender = googleAuthUiClient.signIn()
-                                    launcher.launch(
-                                        IntentSenderRequest.Builder(
-                                            signInIntentSender ?: return@launch
-                                        ).build()
-                                    )
-                                }
-                            }
-                        )
+                        SignInEmailPage(navController = navController)
                     }
-                    // 2. MainNav
+                    // 2. SignUpPage
+                    composable("signUp"){
+                        val signInViewModel = viewModel<SignUpViewModel>()
+                        val signInState by signInViewModel.state.collectAsStateWithLifecycle()
+
+                        SignUpPage(navController = navController)
+                    }
+
+                    // 3. MainNav
                     composable("main") {
                         val context = LocalContext.current
                         val lifecycleOwner = LocalLifecycleOwner.current
@@ -176,7 +134,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
-
+                        /*
                         // 이메일, 비밀번호로 자동 로그인 호출
                         LaunchedEffect(Unit) {
                             try {
@@ -195,8 +153,9 @@ class MainActivity : ComponentActivity() {
                                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         }
-                    }
 
+                         */
+                    }
                 }
             }
         }
@@ -291,8 +250,13 @@ fun NavGraphBuilder.profileGraph(navController: NavHostController, modifier: Mod
     composable("profile") {
         ProfilePage(modifier, navController)
     }
-    composable("collectionDetail"){
-        CollectionDetailPage(modifier, navController)
+    composable(
+        "collectionDetailPage/{collectionId}",
+        arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val collectionId = backStackEntry.arguments?.getString("collectionId")
+        // collectionId를 사용하여 컬렉션 정보 로딩 등 처리
+        CollectionDetailPage(modifier = modifier, navController = navController, collectionId = collectionId)
     }
 }
 

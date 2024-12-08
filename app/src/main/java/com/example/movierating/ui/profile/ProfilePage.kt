@@ -24,6 +24,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,8 +42,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.movierating.R
+import com.example.movierating.data.Collections
 import com.example.movierating.data.Movie
 import com.example.movierating.data.MovieRated
+import com.example.movierating.ui.signIn.UserData
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -52,6 +56,32 @@ fun ProfilePage(
     modifier: Modifier = Modifier,
     navController: NavController,
 ) {
+    val user = FirebaseAuth.getInstance().currentUser
+    val db = FirebaseFirestore.getInstance()
+    val userData = remember { mutableStateOf<UserData?>(null) }
+
+    LaunchedEffect(user) {
+        user?.let {
+            val userId = it.uid
+            // Firestore에서 해당 userId로 문서 조회
+            db.collection("user")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (!documents.isEmpty) {
+                        // 첫 번째 문서를 UserData 객체로 변환
+                        val document = documents.documents.first()
+                        userData.value = document.toObject(UserData::class.java)
+                    } else {
+                        Log.d("Firestore", "No matching user found")
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Firestore", "Error querying user data", e)
+                }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -74,11 +104,11 @@ fun ProfilePage(
             Spacer(modifier = Modifier.width(20.dp))
             Column {
                 Text(
-                    text = "닉네임",
+                    text = userData.value?.username.toString(),
                     fontSize = 25.sp,
                 )
                 Text(
-                    text = "g2hyeong@gmail.com",
+                    text = user?.email.toString(),
                     fontSize = 15.sp
                 )
             }
@@ -137,6 +167,27 @@ fun ProfileTabNav(navController: NavController) {
                 2 -> CollectionTab(navController = navController)
             }
         }
+    }
+}
+
+// 12-07 추가됨 fetchCollectionMoviesFromFirestore
+
+suspend fun fetchCollectionMoviesFromFirestore(): List<Collections> {
+    val db = FirebaseFirestore.getInstance() // Firestore 인스턴스
+    val collectionsRef = db.collection("collections")
+
+    return try {
+        val querySnapshot = collectionsRef.get().await()
+        if (querySnapshot.isEmpty) {
+            emptyList()
+        } else {
+            querySnapshot.documents.mapNotNull { document ->
+                document.toObject(Collections::class.java)
+            }
+        }
+    } catch (exception: Exception) {
+        Log.e("FirestoreDebug", "Error fetching 'movieRated' collection", exception)
+        emptyList()
     }
 }
 
