@@ -33,7 +33,7 @@ class MovieRepository @Inject constructor(
 
 @HiltViewModel
 class MovieViewModel @Inject constructor(
-    private val repository: MovieRepository
+    private val repository: MovieRepository,
 ) : ViewModel() {
     private val _moviesByGenre = MutableLiveData<Map<String, List<Movie>>>()
     val moviesByGenre: LiveData<Map<String, List<Movie>>> get() = _moviesByGenre

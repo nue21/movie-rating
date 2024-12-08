@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.data.Movie
 import com.example.movierating.data.User
@@ -56,9 +57,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 
 @Composable
-fun WatchlistTab(){
+fun WatchlistTab(navController: NavController){
     val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
     val isLoading = remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
@@ -70,6 +73,7 @@ fun WatchlistTab(){
     val currentUser = FirebaseAuth.getInstance().currentUser
     val firestore = FirebaseFirestore.getInstance()
     val selectedMovies = remember { mutableStateOf<Set<String>>(emptySet()) }
+
 
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
@@ -127,47 +131,56 @@ fun WatchlistTab(){
     }*/
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Button(
-            onClick = onFilterClick,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if(isFilterApplied.value || isEditing.value) Color.Black else Color.LightGray
-            ),
-            modifier = Modifier
-                .width(160.dp)
-                .height(36.dp)
-                .padding(vertical = 2.dp),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp)
-        ) {
-            if (isFilterApplied.value || isEditing.value) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = "Close Filter",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+        // 왼쪽에 "편집 취소" 버튼 배치
+        if (isEditing.value) {
+            Button(
+                onClick = onFilterClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isFilterApplied.value || isEditing.value) Color.Black else Color.LightGray
+                ),
+                modifier = Modifier
+                    .width(160.dp)
+                    .height(36.dp)
+                    .padding(vertical = 2.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp)
+            ) {
+                if (isFilterApplied.value || isEditing.value) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Close Filter",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "편집 취소",
+                    color = if (isFilterApplied.value || isEditing.value) Color.White else Color.Black,
+                    fontSize = 12.sp
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if(isEditing.value)"편집 취소" else "평가되지 않은 영화",
-                color = if(isFilterApplied.value || isEditing.value)Color.White else Color.Black,
-                fontSize = 12.sp
-            )
         }
+
+        // 가운데 여백을 채우는 Spacer
+        Spacer(modifier = Modifier.weight(1f))
+
+        // 오른쪽에 수정 아이콘 배치
         IconButton(
             onClick = onEditClick,
             modifier = Modifier.size(36.dp)
         ) {
-            if(isEditing.value){
+            if (isEditing.value) {
                 Icon(
                     imageVector = Icons.Outlined.Delete,
                     contentDescription = "Delete",
                     tint = Color.Gray
                 )
-            }else{
+            } else {
                 Icon(
                     imageVector = Icons.Outlined.Edit,
                     contentDescription = "Edit",
@@ -176,6 +189,7 @@ fun WatchlistTab(){
             }
         }
     }
+
 
     if (isLoading.value) {
         Box(
@@ -215,8 +229,12 @@ fun WatchlistTab(){
                                     color = Color.Black,
                                     shape = RoundedCornerShape(8.dp)
                                 )
-                                .clickable(enabled = isEditing.value) {
-                                    toggleSelection(movie.DOCID, selectedMovies)
+                                .clickable {
+                                    if (isEditing.value) {
+                                        toggleSelection(movie.DOCID, selectedMovies)
+                                    } else {
+                                        navController.navigate("movieDetail/${movie.DOCID}")
+                                    }
                                 }
                         ) {
                             Image(
@@ -242,6 +260,7 @@ fun WatchlistTab(){
                 onCancel = { isDeleteDialogOpen.value = false },
                 onDelete = {
                     // 삭제 로직은 나중에 구현
+                    deleteSelectedMovies(selectedMovies.value, currentUser?.uid.toString(), movies, isLoading)
                     isDeleteDialogOpen.value = false
                 }
             )
@@ -321,5 +340,35 @@ private fun loadMoviesFromWishList(
                     isLoading.value = false
                 }
             }
+    }
+}
+
+fun deleteSelectedMovies(
+    selectedMovies: Set<String>,
+    userId: String,
+    movies: MutableState<List<Movie>>,
+    isLoading: MutableState<Boolean>
+) {
+    val userRef = Firebase.firestore.collection("user").document(userId)
+    // 유저 문서를 가져옵니다
+    userRef.get().addOnSuccessListener { document ->
+        if (document != null && document.exists()) {
+            val wishList = document["wishList"] as? List<String> ?: emptyList()
+            // wishList에서 selectedMovies를 제외한 나머지 값으로 새로운 리스트 생성
+            val updatedWishList = wishList.filterNot { it in selectedMovies }
+            // Firebase에 업데이트
+            userRef.update("wishList", updatedWishList)
+                .addOnSuccessListener {
+                    // Firebase에서 변경된 데이터를 다시 로드
+                    loadMoviesFromWishList(updatedWishList, movies, isLoading)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("DeleteMovies", "삭제 실패: ${e.message}")
+                }
+        } else {
+            Log.e("DeleteMovies", "유저 문서가 존재하지 않습니다.")
+        }
+    }.addOnFailureListener { e ->
+        Log.e("DeleteMovies", "유저 정보 가져오기 실패: ${e.message}")
     }
 }

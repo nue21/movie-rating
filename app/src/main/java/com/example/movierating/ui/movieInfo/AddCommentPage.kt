@@ -191,18 +191,24 @@ fun MovieInfoTab(
     else {
         Column(modifier = Modifier.fillMaxWidth()) {
             // 영화 정보 및 별점 표시
-            movie.value?.let { movie ->
-                MovieCard(
-                    movie = movie,
-                    rating = userRating, // 사용자 별점 초기화
-                    showComments = false,
-                    onRatingChanged = { newRating ->
-                        userRating = newRating // 별점 상태 업데이트
-                        onRatingChanged(newRating)
-                    },
-                    comment = comment
-                )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // 별점 상태를 별도로 관리
+                var rating by remember { mutableStateOf(0f) }
+                movie.value?.let {
+                    MovieCard(
+                        movie = it,
+                        rating = rating,
+                        showComments = false, // 코멘트 표시 여부 전달
+                        onRatingChanged = { newRating ->
+                            rating = newRating
+                        },
+                        comment = "",
+                        isStarShow = false,
+                        onCardClick = {}
+                    )
+                }
             }
+
         }
     }
 }
@@ -251,93 +257,93 @@ fun saveRatingAndComment(
         val userCollection = firestore.collection("user").document(userId)
 
 
-            firestore.collection("movieRated")
-                .whereEqualTo("movie", movie.DOCID)
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener { documents ->
-                    // 기존 문서가 있으면 업데이트
-                    if (!documents.isEmpty) {
-                        val existingDoc = documents.documents.first()
+        firestore.collection("movieRated")
+            .whereEqualTo("movie", movie.DOCID)
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { documents ->
+                // 기존 문서가 있으면 업데이트
+                if (!documents.isEmpty) {
+                    val existingDoc = documents.documents.first()
 
-                        // 업데이트할 데이터 준비
-                        val updatedData = mutableMapOf<String, Any>()
-                        if (currentRating != originalRating) {
-                            updatedData["score"] = currentRating
-                        }
-                        if (currentComment != originalComment) {
-                            updatedData["comment"] = currentComment
-                        }
-                        if (updatedData.isNotEmpty()) {
-                            updatedData["updatedTime"] = Timestamp.now()
-
-                            // Firestore 업데이트 호출
-                            firestore.collection("movieRated")
-                                .document(existingDoc.id)
-                                .update(updatedData)
-                                .addOnSuccessListener {
-                                    println("Rating and comment updated successfully.")
-                                }
-                                .addOnFailureListener { e ->
-                                    println("Failed to update rating or comment: ${e.message}")
-                                }
-                        }
-                            // 별점이 새로 부여됐다면 업데이트
-                        /*if(currentRating != originalRating){
-                            val existingDoc = documents.documents.first()
-                            firestore.collection("movieRated")
-                                .document(existingDoc.id)
-                                .update(
-                                    "score", currentRating,
-                                    //"comment", comment, // comment 필드 추가
-                                    "updatedTime", Timestamp.now()
-                                )
-                        }
-                        // 코멘트가 새로 부여됐다면 업데이트
-                        if( existingDoc["comment"] != comment){
-                            firestore.collection("movieRated")
-                                .document(existingDoc.id)
-                                .update(
-                                    //"score", currentRating,
-                                    "comment", comment, // comment 필드 추가
-                                    "updatedTime", Timestamp.now()
-                                )
-                        }
-                        else{
-                            firestore.collection("movieRated")
-                                .document(existingDoc.id)
-                                .update(
-                                    "comment", comment, // comment 필드 추가
-                                    "updatedTime", Timestamp.now()
-                                )
-                        }*/
+                    // 업데이트할 데이터 준비
+                    val updatedData = mutableMapOf<String, Any>()
+                    if (currentRating != originalRating) {
+                        updatedData["score"] = currentRating
                     }
-                    else{
-                        // 새 문서 생성
-                        val newRating = hashMapOf(
-                            "movie" to movie.DOCID,
-                            "score" to currentRating,
-                            "comment" to currentComment, // comment 필드 추가
-                            "userId" to userId,
-                            "updatedTime" to Timestamp.now()
-                        )
-                        firestore.collection("movieRated").add(newRating)
-                            .addOnSuccessListener { documentReference ->
-                                val documentId = documentReference.id // 문서 ID 가져오기
-                                // user의 movieRatedList 업데이트
-                                userCollection.update("movieRatedList", FieldValue.arrayUnion(documentId))
-                                    .addOnSuccessListener {
-                                        println("movieRatedList updated successfully")
-                                    }
-                                    .addOnFailureListener { e ->
-                                        println("Failed to update movieRatedList: ${e.message}")
-                                    }
+                    if (currentComment != originalComment) {
+                        updatedData["comment"] = currentComment
+                    }
+                    if (updatedData.isNotEmpty()) {
+                        updatedData["updatedTime"] = Timestamp.now()
+
+                        // Firestore 업데이트 호출
+                        firestore.collection("movieRated")
+                            .document(existingDoc.id)
+                            .update(updatedData)
+                            .addOnSuccessListener {
+                                println("Rating and comment updated successfully.")
                             }
                             .addOnFailureListener { e ->
-                                println("Failed to add new rating: ${e.message}")
+                                println("Failed to update rating or comment: ${e.message}")
                             }
                     }
+                    // 별점이 새로 부여됐다면 업데이트
+                    /*if(currentRating != originalRating){
+                        val existingDoc = documents.documents.first()
+                        firestore.collection("movieRated")
+                            .document(existingDoc.id)
+                            .update(
+                                "score", currentRating,
+                                //"comment", comment, // comment 필드 추가
+                                "updatedTime", Timestamp.now()
+                            )
+                    }
+                    // 코멘트가 새로 부여됐다면 업데이트
+                    if( existingDoc["comment"] != comment){
+                        firestore.collection("movieRated")
+                            .document(existingDoc.id)
+                            .update(
+                                //"score", currentRating,
+                                "comment", comment, // comment 필드 추가
+                                "updatedTime", Timestamp.now()
+                            )
+                    }
+                    else{
+                        firestore.collection("movieRated")
+                            .document(existingDoc.id)
+                            .update(
+                                "comment", comment, // comment 필드 추가
+                                "updatedTime", Timestamp.now()
+                            )
+                    }*/
                 }
+                else{
+                    // 새 문서 생성
+                    val newRating = hashMapOf(
+                        "movie" to movie.DOCID,
+                        "score" to currentRating,
+                        "comment" to currentComment, // comment 필드 추가
+                        "userId" to userId,
+                        "updatedTime" to Timestamp.now()
+                    )
+                    firestore.collection("movieRated").add(newRating)
+                        .addOnSuccessListener { documentReference ->
+                            val documentId = documentReference.id // 문서 ID 가져오기
+                            // user의 movieRatedList 업데이트
+                            userCollection.update("movieRatedList", FieldValue.arrayUnion(documentId))
+                                .addOnSuccessListener {
+                                    println("movieRatedList updated successfully")
+                                }
+                                .addOnFailureListener { e ->
+                                    println("Failed to update movieRatedList: ${e.message}")
+                                }
+                        }
+                        .addOnFailureListener { e ->
+                            println("Failed to add new rating: ${e.message}")
+                        }
+                }
+            }
     }
 }
 

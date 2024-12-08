@@ -162,8 +162,8 @@ fun ProfileTabNav(navController: NavController) {
 
             // 탭에 따른 화면 전환
             when (selectedTabIndex) {
-                0 -> RatingTab() // 평가 화면
-                1 -> WatchlistTab() // 보고싶어요 화면
+                0 -> RatingTab(navController) // 평가 화면
+                1 -> WatchlistTab(navController) // 보고싶어요 화면
                 2 -> CollectionTab(navController = navController)
             }
         }
@@ -253,7 +253,8 @@ fun MovieImage(imageUrl: String) {
 fun StarRating(
     modifier: Modifier = Modifier,
     initialRating: Float = 0f,
-    onRatingChanged: (Float) -> Unit = {}
+    onRatingChanged: (Float) -> Unit = {},
+    isStarFixed: Boolean = false
 ) {
     var rating by remember { mutableStateOf(initialRating) }
 
@@ -273,10 +274,16 @@ fun StarRating(
                 contentDescription = null,
                 modifier = Modifier
                     .size(40.dp)
-                    .clickable {
-                        rating = if (rating == i.toFloat()) i - 0.5f else i.toFloat()
-                        onRatingChanged(rating) // 변경된 별점 전달
-                    }
+                    .then(
+                        if (!isStarFixed) {
+                            Modifier.clickable {
+                                rating = if (rating == i.toFloat()) i - 0.5f else i.toFloat()
+                                onRatingChanged(rating) // 변경된 별점 전달
+                            }
+                        } else {
+                            Modifier // 빈 Modifier (클릭 불가)
+                        }
+                    )
             )
         }
     }

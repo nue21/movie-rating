@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 //import androidx.media3.common.StarRating
 import com.example.movierating.data.Movie
 import com.example.movierating.data.MovieRated
@@ -47,7 +48,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @Composable
-fun RatingTab() {
+fun RatingTab(navController: NavController) {
     val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
     val movieRated = remember { mutableStateOf<List<MovieRated>>(emptyList()) }
     val isLoading = remember { mutableStateOf(true) }
@@ -85,12 +86,13 @@ fun RatingTab() {
         coroutineScope.launch {
             val fetchedMovies = fetchMoviesFromFirestore() // Firestore에서 영화 목록 가져오기
             val fetchMovieRated = fetchMovieRatedFromFirestore()
+            val sortedMovieRated = fetchMovieRated.sortedByDescending { it.updatedTime?.toDate() }
+
             movies.value = fetchedMovies
-            movieRated.value = fetchMovieRated
+            movieRated.value = sortedMovieRated
             isLoading.value = false // 데이터 로드 완료 후 로딩 상태 해제
         }
     }
-
 
 
     // 로딩 상태일 때 로딩 인디케이터 표시
@@ -119,15 +121,6 @@ fun RatingTab() {
                         text = if (showComments.value) "별점만" else "코멘트 보기",
                     )
                 }
-
-                Button(
-                    onClick = { /* 정렬 관련 로직 추가 */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
-                ){
-                    Text(
-                        text = "최근 작성 순",
-                    )
-                }
             }
 
             // 영화 목록 표시
@@ -136,7 +129,7 @@ fun RatingTab() {
                     // 별점 상태를 별도로 관리
                     var rating by remember { mutableStateOf(0f) }
                     if (movieRated.userId == userData.value?.userId) {
-                        // movies 에서 movie의 문서명이 movieRated 의 movie 값과 같은 movie 객체를 받아와 하단의 movieCard에 매개변수로 전달하려 해
+                        // movies 에서 movie의 문서명이 movieRated 의 movie 값과 같은 movie 객체를 받아와 하단의 movieCard에 매개변수로 전달
                         val matchedMovie = movies.value.find { it.DOCID == movieRated.movie }
                         matchedMovie?.let { movie ->
                             MovieCard(
@@ -146,7 +139,9 @@ fun RatingTab() {
                                 onRatingChanged = { newRating ->
                                     rating = newRating
                                 },
-                                comment = movieRated.comment
+                                comment = movieRated.comment,
+                                isStarFixed = true,
+                                onCardClick = {navController.navigate("movieDetail/${movie.DOCID}")}
                             )
                         }
                     }
@@ -163,7 +158,10 @@ fun MovieCard(
     rating: Float,
     showComments: Boolean,
     onRatingChanged: (Float) -> Unit,
-    comment: String?
+    comment: String?,
+    isStarFixed: Boolean = false,
+    isStarShow: Boolean = true,
+    onCardClick: () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) } // 코멘트 확장 여부 상태
 
@@ -171,7 +169,9 @@ fun MovieCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable {  }
+            .clickable { onCardClick() },
         colors = CardDefaults.cardColors(Color(0xFFF9F9F9)), // 배경색 연한 그레이
         shape = RoundedCornerShape(10.dp) // 모서리 둥글게
     ) {
@@ -208,10 +208,16 @@ fun MovieCard(
                     )
                     // 별점 영역
                     Spacer(modifier = Modifier.height(8.dp))
-                    StarRating(
-                        initialRating = rating,
-                        onRatingChanged = { newRating -> onRatingChanged(newRating) }
-                    )
+                    if (isStarShow) {
+                        StarRating(
+                            initialRating = rating,
+                            isStarFixed = isStarFixed,
+                            onRatingChanged = { newRating -> onRatingChanged(newRating) }
+                        )
+                    }
+                    else{
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
                 }
             }
 
@@ -246,4 +252,3 @@ fun MovieCard(
         }
     }
 }
-

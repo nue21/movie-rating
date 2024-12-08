@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.movierating.R
 import com.example.movierating.data.Movie
@@ -61,7 +62,8 @@ import java.time.LocalDateTime
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RatePage(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavController
 ) {
     val user = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
@@ -95,18 +97,6 @@ fun RatePage(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        IconButton(onClick = {}) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                        IconButton(onClick = {}) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.List,
-                                contentDescription = "List"
-                            )
-                        }
                     }
                 }
             )
@@ -130,13 +120,15 @@ fun RatePage(
             Spacer(modifier = Modifier.padding(bottom = 8.dp))
             RateRandomTab(userData = userData.value, onRatingUpdated = { updatedUserData ->
                 userData.value = updatedUserData
-            })
+            },
+                navController = navController
+            )
         }
     }
 }
 
 @Composable
-fun RateRandomTab(userData: UserData?, onRatingUpdated: (UserData) -> Unit) {
+fun RateRandomTab(userData: UserData?, onRatingUpdated: (UserData) -> Unit, navController: NavController) {
     val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
     val movieRated = remember { mutableStateOf<List<MovieRated>>(emptyList()) }
     val isLoading = remember { mutableStateOf(true) }
@@ -188,7 +180,9 @@ fun RateRandomTab(userData: UserData?, onRatingUpdated: (UserData) -> Unit) {
                                     onRatingUpdated(updatedUserData)
                                 }
                             },
-                            comment = ""
+                            comment = "",
+                            isStarFixed = false,
+                            onCardClick = {navController.navigate("movieDetail/${movie.DOCID}")}
                         )
                     }
                 }

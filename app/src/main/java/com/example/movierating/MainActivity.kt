@@ -1,5 +1,6 @@
 package com.example.movierating
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.os.Bundle
 import android.widget.Toast
@@ -81,6 +82,7 @@ class MainActivity : ComponentActivity() {
     // user 정보 view model
     private val userViewModel: UserViewModel by viewModels()
 
+    @SuppressLint("NewApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -234,7 +236,7 @@ fun NavGraphBuilder.homeGraph(
 
 fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifier) {
     composable("rate") {
-        RatePage(modifier)
+        RatePage(modifier, navController)
     }
     composable("addCollection/{docId}") { backStackEntry -> // docId를 경로 변수로 추가
         val docId = backStackEntry.arguments?.getString("docId") ?: ""
