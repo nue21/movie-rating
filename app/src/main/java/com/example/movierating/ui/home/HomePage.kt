@@ -84,7 +84,8 @@ fun HomePage (
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             WorldCupButton(onClickWorldCup = goToWorldCupPage)
             moviesByGenre.value.forEach { (genre, movies) ->
