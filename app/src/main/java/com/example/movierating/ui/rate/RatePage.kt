@@ -226,7 +226,7 @@ private fun saveRating(
                         Log.d("Firestore", "MovieRated updated successfully")
 
                         // UserData의 movieRatedList 업데이트
-                        updateUserMovieRatedList(userData, db, onUserDataUpdated)
+                        updateUserMovieRatedList(userData, db, existingDoc.id, onUserDataUpdated)
                     }
                     .addOnFailureListener { e ->
                         Log.e("Firestore", "Error updating MovieRated", e)
@@ -249,7 +249,7 @@ private fun saveRating(
                             Log.d("Firestore", "MovieRated saved with ID: ${documentReference.id}")
 
                             // UserData의 movieRatedList 업데이트
-                            updateUserMovieRatedList(userData, db, onUserDataUpdated)
+                            updateUserMovieRatedList(userData, db, documentReference.id, onUserDataUpdated)
                         }
                         .addOnFailureListener { e ->
                             Log.e("Firestore", "Error saving MovieRated", e)
@@ -265,6 +265,7 @@ private fun saveRating(
 private fun updateUserMovieRatedList(
     userData: UserData?,
     db: FirebaseFirestore,
+    movieRatedId: String,
     onUserDataUpdated: (UserData) -> Unit
 ) {
     val userDocRef = db.collection("user").document(userData?.userId ?: "")
@@ -275,26 +276,30 @@ private fun updateUserMovieRatedList(
             if (userDocument.exists()) {
                 val currentMovieRatedList = userDocument.get("movieRatedList") as? List<String> ?: mutableListOf()
 
-                // 기존 리스트에 새 document id 추가
-                val updatedMovieRatedList = currentMovieRatedList.toMutableList()
-                updatedMovieRatedList.add(userDocument.id)
+                // movieRatedId가 이미 리스트에 있는지 확인
+                if (!currentMovieRatedList.contains(movieRatedId)) {
+                    // 기존 리스트에 새 document id 추가
+                    val updatedMovieRatedList = currentMovieRatedList.toMutableList()
+                    updatedMovieRatedList.add(movieRatedId)
 
-                // User의 movieRatedList 업데이트
-                val userUpdate = mapOf("movieRatedList" to updatedMovieRatedList)
-                userDocRef.update(userUpdate)
-                    .addOnSuccessListener {
-                        Log.d("Firestore", "UserData updated successfully")
+                    // User의 movieRatedList 업데이트
+                    val userUpdate = mapOf("movieRatedList" to updatedMovieRatedList)
+                    userDocRef.update(userUpdate)
+                        .addOnSuccessListener {
+                            Log.d("Firestore", "UserData updated successfully")
 
-                        // 갱신된 UserData 반환
-                        userData?.let { it1 -> onUserDataUpdated(it1.copy(movieRatedList = updatedMovieRatedList)) }
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("Firestore", "Error updating UserData", e)
-                    }
+                            // 갱신된 UserData 반환
+                            userData?.let { it1 -> onUserDataUpdated(it1.copy(movieRatedList = updatedMovieRatedList)) }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("Firestore", "Error updating UserData", e)
+                        }
+                } else {
+                    Log.d("Firestore", "movieRatedId already exists in the list, no update needed.")
+                }
             }
         }
         .addOnFailureListener { e ->
             Log.e("Firestore", "Error fetching user data", e)
         }
 }
-
