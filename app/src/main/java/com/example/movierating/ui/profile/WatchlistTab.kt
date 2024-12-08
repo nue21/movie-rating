@@ -52,8 +52,10 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.data.Movie
 import com.example.movierating.data.User
 import com.example.movierating.ui.signIn.UserData
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -242,6 +244,7 @@ fun WatchlistTab(){
                 onCancel = { isDeleteDialogOpen.value = false },
                 onDelete = {
                     // 삭제 로직은 나중에 구현
+                    deleteSelectedMovies(selectedMovies.value, currentUser?.uid.toString(), movies, isLoading)
                     isDeleteDialogOpen.value = false
                 }
             )
@@ -280,6 +283,40 @@ fun DeleteDialog(
         }
     )
 }
+
+fun deleteSelectedMovies(
+    selectedMovies: Set<String>,
+    userId: String,
+    movies: MutableState<List<Movie>>,
+    isLoading: MutableState<Boolean>
+) {
+    val userRef = Firebase.firestore.collection("user").document(userId)
+
+    // 유저 문서를 가져옵니다
+    userRef.get().addOnSuccessListener { document ->
+        if (document != null && document.exists()) {
+            val wishList = document["wishList"] as? List<String> ?: emptyList()
+
+            // wishList에서 selectedMovies를 제외한 나머지 값으로 새로운 리스트 생성
+            val updatedWishList = wishList.filterNot { it in selectedMovies }
+
+            // Firebase에 업데이트
+            userRef.update("wishList", updatedWishList)
+                .addOnSuccessListener {
+                    // Firebase에서 변경된 데이터를 다시 로드
+                    loadMoviesFromWishList(updatedWishList, movies, isLoading)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("DeleteMovies", "삭제 실패: ${e.message}")
+                }
+        } else {
+            Log.e("DeleteMovies", "유저 문서가 존재하지 않습니다.")
+        }
+    }.addOnFailureListener { e ->
+        Log.e("DeleteMovies", "유저 정보 가져오기 실패: ${e.message}")
+    }
+}
+
 
 private fun toggleSelection(movieId: String, selectedMovies: MutableState<Set<String>>) {
     val updatedSet = selectedMovies.value.toMutableSet()
@@ -322,4 +359,6 @@ private fun loadMoviesFromWishList(
                 }
             }
     }
+
+
 }
