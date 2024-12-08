@@ -55,7 +55,6 @@ fun HomePage (
     onSignOut: () -> Unit,
     goToWorldCupPage: () -> Unit,
     userViewModel: UserViewModel = hiltViewModel()
-
     ) {
     val movieImgUrls = arrayOf(
         "http://file.koreafilm.or.kr/thm/02/99/18/55/tn_DPK022735.jpg",
@@ -190,7 +189,7 @@ fun WorldCupButton (
                     colors = listOf(Color(0xFFFC6767), Color(0xFFFF947D))
                 )
             )
-            .clickable { onClickWorldCup }
+            .clickable { onClickWorldCup() }
             .padding(16.dp)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -20,22 +20,27 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
-import com.example.movierating.service.MovieService
+import androidx.navigation.navArgument
 import com.example.movierating.ui.BottomNavigationBar
 
 import com.example.movierating.ui.home.HomePage
+import com.example.movierating.ui.home.WordlCupViewModel
 import com.example.movierating.ui.home.WorldCupPage
-import com.example.movierating.ui.movieInfo.AddCommentPage
+import com.example.movierating.ui.home.WorldCupPlayPage
+import com.example.movierating.ui.home.WorldCupResultDetail
+import com.example.movierating.ui.home.WorldCupResultPage
 
 import com.example.movierating.ui.movieInfo.AddCollectionPage
 
@@ -43,8 +48,6 @@ import com.example.movierating.ui.movieInfo.MovieDetailPage
 import com.example.movierating.ui.profile.ProfilePage
 
 import com.example.movierating.ui.profile.CollectionDetailPage
-
-import com.example.movierating.ui.profile.WatchlistTab
 
 import com.example.movierating.ui.rate.RatePage
 import com.example.movierating.ui.search.SearchPage
@@ -59,7 +62,6 @@ import com.google.android.gms.auth.api.identity.Identity
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.launch
-import java.io.FileInputStream
 
 @HiltAndroidApp
 class MyApplication : Application() {
@@ -99,7 +101,6 @@ class MainActivity : ComponentActivity() {
                         val signInState by signInViewModel.state.collectAsStateWithLifecycle()
                         // 로그인되어 있으면 바로 MainNav으로 이동
                         LaunchedEffect(key1 = Unit) {
-                            println("집중"+userViewModel.userData.value)
                             if (userViewModel.userData.value != null)
                                 navController.navigate("main")
                         }
@@ -171,7 +172,8 @@ class MainActivity : ComponentActivity() {
 
                                     navController.navigate("signIn")   // 화면 이동
                                 }
-                            }
+                            },
+                            userViewModel
                         )
 
                         // 이메일, 비밀번호로 자동 로그인 호출
@@ -202,7 +204,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainNavHost (
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    userViewModel: UserViewModel
 ) {
     val navController = rememberNavController()
 
@@ -213,6 +216,9 @@ fun MainNavHost (
     )
     searchViewModel.loadSearchHistory()
 
+    var worldCupViewModel: WordlCupViewModel = hiltViewModel()
+
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -220,21 +226,41 @@ fun MainNavHost (
         }
     ) { innerPadding ->
         NavHost(navController = navController, startDestination = "home") {
-            homeGraph(navController, Modifier.padding(innerPadding), onSignOut)
-            searchGraph(navController = navController, modifier = Modifier.padding(innerPadding), searchViewModel)
+            homeGraph(navController, Modifier.padding(innerPadding), onSignOut, userViewModel, worldCupViewModel)
+            searchGraph(navController, Modifier.padding(innerPadding), searchViewModel)
             rateGraph(navController, Modifier.padding(innerPadding))
             profileGraph(navController, Modifier.padding(innerPadding))
         }
     }
 }
 
-fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit
+fun NavGraphBuilder.homeGraph(
+    navController: NavHostController,
+    modifier: Modifier,
+    onSignOut: () -> Unit,
+    userViewModel: UserViewModel,
+    worldCupViewModel:WordlCupViewModel
 ) {
     composable("home") {
-        HomePage(modifier, onSignOut, goToWorldCupPage = { navController.navigate("worldCup") })
+        HomePage(modifier, onSignOut, goToWorldCupPage = {
+            navController.navigate("worldCup")
+        })
     }
     composable("worldCup") {
-        WorldCupPage(modifier)
+        WorldCupPage(modifier, navController, userViewModel, worldCupViewModel)
+    }
+    composable(
+        route = "worldCupPlay/{round}",
+        arguments = listOf(navArgument("round") { type = NavType.StringType })
+    ) {
+        val round = it.arguments?.getString("round") ?: "No Data"
+        WorldCupPlayPage(navController, worldCupViewModel)
+    }
+    composable("worldCupResult") {
+        WorldCupResultPage(navController,worldCupViewModel)
+    }
+    composable("worldCupResultDetail") {
+        WorldCupResultDetail(navController)
     }
 }
 
