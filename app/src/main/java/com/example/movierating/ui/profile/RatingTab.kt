@@ -146,7 +146,8 @@ fun RatingTab() {
                                 onRatingChanged = { newRating ->
                                     rating = newRating
                                 },
-                                comment = movieRated.comment
+                                comment = movieRated.comment,
+                                isStarFixed = true
                             )
                         }
                     }
@@ -163,7 +164,8 @@ fun MovieCard(
     rating: Float,
     showComments: Boolean,
     onRatingChanged: (Float) -> Unit,
-    comment: String?
+    comment: String?,
+    isStarFixed: Boolean = false
 ) {
     var isExpanded by remember { mutableStateOf(false) } // 코멘트 확장 여부 상태
 
@@ -171,7 +173,8 @@ fun MovieCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable {  },
         colors = CardDefaults.cardColors(Color(0xFFF9F9F9)), // 배경색 연한 그레이
         shape = RoundedCornerShape(10.dp) // 모서리 둥글게
     ) {
@@ -210,6 +213,7 @@ fun MovieCard(
                     Spacer(modifier = Modifier.height(8.dp))
                     StarRating(
                         initialRating = rating,
+                        isStarFixed = isStarFixed,
                         onRatingChanged = { newRating -> onRatingChanged(newRating) }
                     )
                 }

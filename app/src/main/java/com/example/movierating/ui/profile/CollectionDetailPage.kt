@@ -208,7 +208,8 @@ fun CollectionDetailPage(
                             rating = rating ?: 0f, // rating 값이 null인 경우 기본값 0f
                             showComments = showComments.value, // 코멘트 표시 여부 전달
                             onRatingChanged = { newRating -> rating = newRating },
-                            comment = ""
+                            comment = "",
+                            isStarFixed = true
                         )
                     }
                 }

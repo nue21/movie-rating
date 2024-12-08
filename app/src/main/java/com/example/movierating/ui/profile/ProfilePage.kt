@@ -253,7 +253,8 @@ fun MovieImage(imageUrl: String) {
 fun StarRating(
     modifier: Modifier = Modifier,
     initialRating: Float = 0f,
-    onRatingChanged: (Float) -> Unit = {}
+    onRatingChanged: (Float) -> Unit = {},
+    isStarFixed: Boolean = false
 ) {
     var rating by remember { mutableStateOf(initialRating) }
 
@@ -273,10 +274,16 @@ fun StarRating(
                 contentDescription = null,
                 modifier = Modifier
                     .size(40.dp)
-                    .clickable {
-                        rating = if (rating == i.toFloat()) i - 0.5f else i.toFloat()
-                        onRatingChanged(rating) // 변경된 별점 전달
-                    }
+                    .then(
+                        if (!isStarFixed) {
+                            Modifier.clickable {
+                                rating = if (rating == i.toFloat()) i - 0.5f else i.toFloat()
+                                onRatingChanged(rating) // 변경된 별점 전달
+                            }
+                        } else {
+                            Modifier // 빈 Modifier (클릭 불가)
+                        }
+                    )
             )
         }
     }
