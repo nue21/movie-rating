@@ -26,10 +26,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.movierating.data.Movie
 import com.example.movierating.service.MovieService
 import com.example.movierating.ui.BottomNavigationBar
 
@@ -228,13 +231,27 @@ fun MainNavHost (
     }
 }
 
-fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit
-) {
+fun NavGraphBuilder.homeGraph(navController: NavHostController, modifier: Modifier, onSignOut: () -> Unit) {
     composable("home") {
-        HomePage(modifier, onSignOut, goToWorldCupPage = { navController.navigate("worldCup") })
+        HomePage(
+            modifier,
+            onSignOut,
+            goToWorldCupPage = { navController.navigate("worldCup") },
+            goToDetailPage = { docId ->
+                navController.navigate("movieDetail/$docId"){
+                    launchSingleTop = true
+                }
+            }
+        )
     }
     composable("worldCup") {
         WorldCupPage(modifier)
+    }
+
+    // MovieDetailPage 추가
+    composable("movieDetail/{docId}") { backStackEntry ->
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        MovieDetailPage(modifier, navController, docId)
     }
 }
 
@@ -242,11 +259,13 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
     composable("rate") {
         RatePage(modifier)
     }
-    composable("movieDetail") {
-        MovieDetailPage(modifier,  navController)
+    composable("addCollection/{docId}") { backStackEntry -> // docId를 경로 변수로 추가
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        AddCollectionPage(modifier, navController, docId) // AddCollectionPage에 docId 전달
     }
-    composable("addCollection") {
-        AddCollectionPage()
+    composable(route = "addComment/{docId}") { backStackEntry ->
+        val docId = backStackEntry.arguments?.getString("docId") ?: ""
+        AddCommentPage(navController, modifier, docId)
     }
 }
 

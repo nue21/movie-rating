@@ -38,7 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.StarRating
+//import androidx.media3.common.StarRating
 import com.example.movierating.data.Movie
 import com.example.movierating.data.MovieRated
 import com.example.movierating.ui.signIn.UserData
@@ -141,7 +141,7 @@ fun RatingTab() {
                         matchedMovie?.let { movie ->
                             MovieCard(
                                 movie = movie,
-                                rating = rating,
+                                rating = movieRated.score?.toFloat() ?: 0f,
                                 showComments = showComments.value, // 코멘트 표시 여부 전달
                                 onRatingChanged = { newRating ->
                                     rating = newRating

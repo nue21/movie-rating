@@ -18,14 +18,24 @@ fun BottomNavigationBar(navController: NavController) {
 
         items.forEach { screen ->
             BottomNavigationItem(
-                icon = { },
+                icon = {  },
                 label = { Text(screen) },
                 selected = currentRoute == screen,
                 onClick = {
                     navController.navigate(screen) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        // 홈화면 클릭 시 스택을 완전히 제거
+                        if (screen == "home") {
+                            popUpTo(navController.graph.startDestinationRoute!!) {
+                                inclusive = true
+                            }
+                            restoreState = false  // 홈화면 상태를 리셋
+                        } else {
+                            popUpTo(navController.graph.startDestinationRoute!!) {
+                                saveState = true
+                            }
+                            restoreState = true
+                        }
                         launchSingleTop = true
-                        restoreState = true
                     }
                 }
             )

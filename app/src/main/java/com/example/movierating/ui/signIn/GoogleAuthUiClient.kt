@@ -42,26 +42,35 @@ class GoogleAuthUiClient(
             val authResult = auth.signInWithEmailAndPassword(email, password).await()
             val firebaseUser = authResult.user ?: throw IllegalStateException("User not found after login")
 
-            // Firestore에 사용자 데이터 저장
-            val userData = UserData(
-                userId = firebaseUser.uid,
-                username = firebaseUser.displayName,
-                profilePictureUrl = firebaseUser.photoUrl?.toString(),
-                collectionList = emptyList(),
-                movieRatedList = emptyList(),
-                wishList = emptyList()
-            )
+            // Firestore에서 사용자 데이터 가져오기
+            val userDocument = firestore.collection("user").document(firebaseUser.uid).get().await()
 
-            firestore.collection("user").document(firebaseUser.uid)
-                .set(userData)
-                .await()
+            val userData: UserData = if (userDocument.exists()) {
+                // Firestore 문서가 존재하면 데이터를 가져와 초기화
+                userDocument.toObject(UserData::class.java)
+                    ?: throw IllegalStateException("Failed to convert Firestore document to UserData")
+            } else {
+                // Firestore 문서가 없으면 새로 초기화
+                UserData(
+                    userId = firebaseUser.uid,
+                    username = firebaseUser.displayName,
+                    profilePictureUrl = firebaseUser.photoUrl?.toString(),
+                    collectionList = emptyList(),
+                    movieRatedList = emptyList(),
+                    wishList = emptyList()
+                ).also {
+                    // 새 데이터를 Firestore에 저장
+                    firestore.collection("user").document(firebaseUser.uid).set(it).await()
+                }
+            }
 
-            userData // 반환된 UserData 객체
+            userData // 초기화된 UserData 반환
         } catch (e: Exception) {
             e.printStackTrace()
             null // 오류 발생 시 null 반환
         }
     }
+
 
     /////////////////////////////
 
