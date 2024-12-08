@@ -163,7 +163,7 @@ fun CollectionDetailPage(
                         contentDescription = "뒤로가기"
                     )
                 }
-                Text(text = "컬렉션 이름", style = MaterialTheme.typography.titleLarge)
+                Text(text = collectionData.value?.collectionName.toString(), style = MaterialTheme.typography.titleLarge)
                 IconButton(onClick = { /* 수정 동작 */ }) {
                     Icon(
                         imageVector = Icons.Default.Edit,

@@ -122,7 +122,7 @@ fun SignUpPage(navController: NavController){
                 ) {
                     Text(text = stringResource(R.string.signup))
                 }
-                TextButton(onClick = {}) {
+                TextButton(onClick = {navController.navigate("signIn")}) {
                     Text(text = stringResource(R.string.signuptext))
                 }
             }

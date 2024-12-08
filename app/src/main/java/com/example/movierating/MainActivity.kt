@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -45,6 +46,7 @@ import com.example.movierating.ui.home.WorldCupResultDetail
 import com.example.movierating.ui.home.WorldCupResultPage
 
 import com.example.movierating.ui.movieInfo.AddCollectionPage
+import com.example.movierating.ui.movieInfo.AddCommentPage
 
 import com.example.movierating.ui.movieInfo.MovieDetailPage
 import com.example.movierating.ui.profile.ProfilePage
@@ -62,7 +64,7 @@ import com.example.movierating.ui.signIn.SignInEmailViewModel
 import com.example.movierating.ui.signUp.SignUpPage
 import com.example.movierating.ui.signUp.SignUpViewModel
 import com.example.movierating.ui.user.UserViewModel
-import com.google.android.gms.auth.api.identity.Identity
+//import com.google.android.gms.auth.api.identity.Identity
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.launch
@@ -79,17 +81,8 @@ class MainActivity : ComponentActivity() {
     // user 정보 view model
     private val userViewModel: UserViewModel by viewModels()
 
-    // 로그인을 위한 UiClient
-    private val googleAuthUiClient by lazy {
-        GoogleAuthUiClient(
-            context = applicationContext,
-            oneTapClient = Identity.getSignInClient(applicationContext)
-        )
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             MovieRatingTheme {
                 val navController = rememberNavController()
@@ -122,7 +115,6 @@ class MainActivity : ComponentActivity() {
                         MainNavHost(
                             onSignOut = {
                                 lifecycleOwner.lifecycleScope.launch {
-                                    googleAuthUiClient.signOut()    // 로그아웃
                                     userViewModel.resetUserData()   // userData -> null
                                     Toast.makeText(
                                         context,
@@ -163,6 +155,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(35)
 @Composable
 fun MainNavHost (
     onSignOut: () -> Unit,
@@ -216,7 +209,7 @@ fun NavGraphBuilder.homeGraph(
         )
     }
     composable("worldCup") {
-        WorldCupPage(modifier, navController, userViewModel, worldCupViewModel)
+        WorldCupPage(navController, userViewModel, worldCupViewModel)
     }
     composable(
         route = "worldCupPlay/{round}",
@@ -229,7 +222,7 @@ fun NavGraphBuilder.homeGraph(
         WorldCupResultPage(navController,worldCupViewModel)
     }
     composable("worldCupResultDetail") {
-        WorldCupResultDetail(navController)
+        WorldCupResultDetail(navController, worldCupViewModel)
     }
 
     // MovieDetailPage 추가
@@ -254,6 +247,7 @@ fun NavGraphBuilder.rateGraph(navController: NavHostController, modifier: Modifi
 }
 
 
+@RequiresApi(35)
 fun NavGraphBuilder.searchGraph(navController: NavHostController, modifier: Modifier, searchViewModel: SearchViewModel) {
     composable("search") {
         SearchPage(
@@ -266,7 +260,8 @@ fun NavGraphBuilder.searchGraph(navController: NavHostController, modifier: Modi
         SearchResultPage(
             modifier,
             searchViewModel,
-            backToSearchPage = { navController.navigateUp() }
+            backToSearchPage = { navController.navigateUp() },
+            goToDetailPage = { navController.navigate("movieDetail/${it}") }
         )
     }
 }

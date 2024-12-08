@@ -37,6 +37,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +47,9 @@ fun WorldCupPlayPage (
     navController: NavController,
     worldCupViewModel: WordlCupViewModel
 ) {
+    val roundList: List<String> = listOf("64강", "32강", "16강", "8강", "준결승", "3,4위", "결승")
+    val num = 1 - worldCupViewModel.round.value
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -62,12 +68,12 @@ fun WorldCupPlayPage (
                 .fillMaxSize()
                 .padding(it),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
+            verticalArrangement = Arrangement.Top
         ) {
             Row(
                 modifier = Modifier
                     .width(240.dp)
-                    .padding()
+                    .padding(24.dp)
                     .border(
                         width = 2.dp,
                         color = Color(0xFFFC6767),
@@ -83,7 +89,7 @@ fun WorldCupPlayPage (
                     contentAlignment = Alignment.Center
                 ){
                     Text(
-                        text = "${worldCupViewModel.round.value / worldCupViewModel.roundCnt.value}강",
+                        text = roundList[num + worldCupViewModel.roundCnt.value]+"전",
                         style = TextStyle(
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
@@ -98,7 +104,7 @@ fun WorldCupPlayPage (
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "${worldCupViewModel.gameCnt} 경기",
+                        text = "${worldCupViewModel.gameCnt.value} 경기",
                         style = TextStyle(
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
@@ -111,16 +117,16 @@ fun WorldCupPlayPage (
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 30.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(horizontal = 40.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 MatchItem(
                     movie = worldCupViewModel.currentMathUp.value[0],
                     onClick = {
                         worldCupViewModel.chooseMovie(0)
-                        if(worldCupViewModel.state.equals(WorldCupState.GameOver)){
-                            navController.navigate("worldCupResult")
+                        if(worldCupViewModel.state.value == WorldCupState.GameOver){
+                            navController.navigate("worldCupResultDetail")
                         }
                     }
                 )
@@ -128,15 +134,16 @@ fun WorldCupPlayPage (
                     text = "VS",
                     style = TextStyle(
                         fontSize = 32.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFFC6767)
                     )
                 )
                 MatchItem(
                     movie = worldCupViewModel.currentMathUp.value[1],
                     onClick = {
                         worldCupViewModel.chooseMovie(1)
-                        if(worldCupViewModel.state.equals(WorldCupState.GameOver)){
-                            navController.navigate("worldCupResult")
+                        if(worldCupViewModel.state.value == WorldCupState.GameOver){
+                            navController.navigate("worldCupResultDetail")
                         }
                     }
                 )
@@ -151,7 +158,6 @@ fun MatchItem (
     movie: WorldCupMovie,
     onClick : () -> Unit
 ) {
-    val url = "https://an2-img.amz.wtchn.net/image/v2/AEpPajdzfveZSqL83Q4psw.jpg?jwt=ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKdmNIUnpJanBiSW1SZk5Ea3dlRGN3TUhFNE1DSmRMQ0p3SWpvaUwzWXhMM0pwZEc5aVlXRmhiRGR1ZFdJMU1YWm9ZMmh3SW4wLnE2ODhVUmNhTjlDZ1pURFBWZFk2OUNkZU15M2lOTkswOTJwenF6R0lsTDQ"
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -186,8 +192,10 @@ fun MatchItem (
                         ),
                         maxLines = 2
                     )
+                    val instant = movie.updatedTime?.toInstant()
+                    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault())
                     Text(
-                        text = movie.commentDate?: "",
+                        text = formatter.format(instant),
                         modifier = Modifier.align(Alignment.End),
                         style = TextStyle(
                             fontSize = 13.sp

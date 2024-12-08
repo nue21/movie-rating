@@ -1,6 +1,7 @@
 package com.example.movierating.ui.search
 
 import android.content.Context
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,8 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +23,9 @@ import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,26 +34,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import com.example.movierating.data.Movie
 
+@RequiresApi(35)
 @Composable
 fun SearchResultPage(
     modifier: Modifier = Modifier,
     searchViewModel: SearchViewModel,
-    backToSearchPage: () -> Unit
+    backToSearchPage: () -> Unit,
+    goToDetailPage: (String) -> Unit
 ) {
     var isSearching by remember { mutableStateOf(false) }
-
-    val map1: Map<String, String> = mapOf("title" to "그 여름날의 거짓말", "prodYear" to "2024", "runtime" to "138", "poster" to "http://file.koreafilm.or.kr/thm/02/99/18/53/tn_DPK022632.jpg")
-    val map2: Map<String, String> = mapOf("title" to "여름이 끝날 무렵의 라트라비아타", "prodYear" to "2023", "runtime" to "115", "poster" to "http://file.koreafilm.or.kr/thm/02/99/18/53/tn_DPK022638.jpg")
-    val map3: Map<String, String> = mapOf("title" to "여름을 향한 터널, 이별의 출구", "prodYear" to "2022", "runtime" to "83", "poster" to "http://file.koreafilm.or.kr/thm/02/99/18/16/tn_DPF027820.jpg")
-
-    val results = listOf(map1, map2, map3)
+    val searchInput by searchViewModel.searchInput.collectAsState()
 
     Column (
         modifier = modifier
@@ -75,7 +80,7 @@ fun SearchResultPage(
                 )
             }
             SearchBar(
-                searchInput = searchViewModel.searchInput,
+                searchInput = searchInput,
                 changeSearchInput = { searchViewModel.updateSearchInput(it) },
                 onClickSearch = {
                     searchViewModel.updateSearchHistory()
@@ -85,7 +90,8 @@ fun SearchResultPage(
             )
         }
         SearchResultList(
-            results
+            searchViewModel.resultMovies.value,
+            goToDetailPage
         )
     }
 }
@@ -96,7 +102,8 @@ fun getSubText (prodYear: String, runtime: String ): String {
 
 @Composable
 fun SearchResultList (
-    results: List<Map<String, String>>
+    results: List<Movie>,
+    goToDetailPage: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -114,28 +121,34 @@ fun SearchResultList (
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 5.dp)
-                        .clickable { },
+                        .clickable { goToDetailPage(item.DOCID) },
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(item["poster"]),
-                        contentDescription = "movie",
+                    Surface(
                         modifier = Modifier
-                            .size(86.dp, 123.dp)
-                            .clip(RoundedCornerShape(5.dp)),
-                    )
+                            .width(86.dp)
+                            .height(123.dp)
+                            .clip(RoundedCornerShape(5.dp)), // 이미지 둥근 모서리 처리
+                        color = Color.LightGray // 이미지가 로드되지 않을 경우 색상
+                    ) {
+                        AsyncImage(
+                            model = item.posters,
+                            contentDescription = "Movie Thumbnail",
+                            contentScale = ContentScale.Crop // 이미지 비율 유지하며 채우기
+                        )
+                    }
                     Column (
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = item["title"] ?: "기본값",
+                            text = item.title?: "기본값",
                             style = TextStyle(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Medium
                             )
                         )
-                        Text(text = getSubText(item["prodYear"]?:"",item["runtime"]?:"0"))
+                        Text(text = getSubText(item.year?:"",item.runtime?:"0"))
                     }
                 }
             }

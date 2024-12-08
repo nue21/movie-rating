@@ -1,5 +1,6 @@
 package com.example.movierating.ui.search
 
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,9 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.movierating.ui.theme.MovieRatingTheme
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalFocusManager
+import com.example.movierating.data.Movie
+import com.google.firebase.firestore.FirebaseFirestore
 
 
+@RequiresApi(35)
 @Composable
 fun SearchPage (
     modifier: Modifier = Modifier,
@@ -51,6 +56,39 @@ fun SearchPage (
     goToResultPage: () -> Unit
 ) {
     var isSearching by remember { mutableStateOf(false) }
+    // 검색어 상태 관리
+    val searchInput by searchViewModel.searchInput.collectAsState()
+    val moviesRef = FirebaseFirestore.getInstance().collection("movies")
+    var autoComplete = searchViewModel.resultMovies
+    // Debounced 검색어 상태를 저장
+    var debouncedInput by remember { mutableStateOf("") }
+
+    // Debounce 로직 추가
+//    LaunchedEffect(searchInput) {
+//        delay(300L) // 300ms 대기 (사용자가 입력을 멈출 때까지 대기)
+//        debouncedInput = searchInput
+//    }
+
+//    LaunchedEffect(debouncedInput) {
+//        if(debouncedInput.isBlank()) return@LaunchedEffect
+//
+//        val querySnapshot = moviesRef
+//            .whereGreaterThanOrEqualTo("title", debouncedInput)
+//            .whereLessThanOrEqualTo("title", debouncedInput + '\uf8ff')
+//            .limit(10) // 결과 수 제한
+//            .get()
+//            .await()
+//
+//        if (querySnapshot.isEmpty) {
+//            Log.d("MovieSearch", "No movies found: $debouncedInput")
+//            autoComplete = emptyList()
+//        } else {
+//            val movieList = querySnapshot.mapNotNull { document ->
+//                document.toObject(Movie::class.java)
+//            }
+//            autoComplete = movieList
+//        }
+//    }
 
     Column (
         modifier = modifier
@@ -58,7 +96,7 @@ fun SearchPage (
             .padding(16.dp)
     ) {
         SearchBar(
-            searchInput = searchViewModel.searchInput,
+            searchInput = searchInput,
             changeSearchInput = { searchViewModel.updateSearchInput(it) },
             onClickSearch = {
                 searchViewModel.updateSearchHistory()
@@ -70,6 +108,7 @@ fun SearchPage (
         
         if(isSearching) {
             SearchAutoComplete(
+                autoComplete,
                 onClickAutoComplete = {
                     searchViewModel.updateSearchInput(it)
                     searchViewModel.updateSearchHistory()
@@ -92,10 +131,9 @@ fun SearchPage (
 
 @Composable
 fun SearchAutoComplete (
+    autoComplete: State<List<Movie>>,
     onClickAutoComplete: (String) -> Unit
 ) {
-    val example = listOf("dd", "ddd", "ddd", "eee")
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -104,14 +142,14 @@ fun SearchAutoComplete (
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // 데이터 리스트를 이용하여 항목을 추가
-            items(example) { item ->
+            items(autoComplete.value) { item ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onClickAutoComplete(item) },
+                        .clickable { onClickAutoComplete(item.title) },
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -120,7 +158,7 @@ fun SearchAutoComplete (
                         contentDescription = "search",
                         modifier = Modifier.size(20.dp)
                     )
-                    Text(text = item)
+                    Text(text = item.title)
                 }
             }
         }
