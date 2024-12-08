@@ -51,6 +51,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.time.format.TextStyle
@@ -65,7 +66,8 @@ fun AddCommentPage(
     var originalRating by remember { mutableStateOf(0f) } // 기존 별점 저장
     var rating by remember { mutableStateOf(0f) } // 현재 별점 저장
     var movie by remember { mutableStateOf<Movie?>(null) }
-    var comment by remember { mutableStateOf("") }
+    var originalComment by remember { mutableStateOf("") } // 기존 코멘트 저장
+    var comment by remember { mutableStateOf("") } // 현재 코멘트 저장
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -91,7 +93,8 @@ fun AddCommentPage(
                         currentRating = rating,
                         originalRating = originalRating,
                         currentUser = currentUser,
-                        comment = comment
+                        currentComment = comment,
+                        originalComment = originalComment
                     )
                 }
             }) {
@@ -112,14 +115,18 @@ fun AddCommentPage(
             },
             onRatingChanged = { newRating ->
                 rating = newRating // 사용자 입력 시 별점 상태 업데이트
-            }
+            },
+            onCommentLoaded = { loadedComment ->
+                originalComment = loadedComment // Firestore에서 불러온 기존 코멘트 저장
+                comment = loadedComment // 현재 코멘트를 기존 값으로 초기화
+            },
         )
         CommentTab(
             comment = comment,
             onCommentChanged = { newComment ->
                 comment = newComment // 작성된 코멘트 저장
-            })
-
+            }
+        )
     }
 }
 
@@ -128,7 +135,8 @@ fun MovieInfoTab(
     docId: String?,
     onMovieLoaded: (Movie) -> Unit,
     onRatingLoaded: (Float) -> Unit, // 기존 별점 전달
-    onRatingChanged: (Float) -> Unit // 별점 변경시 호출
+    onRatingChanged: (Float) -> Unit, // 별점 변경시 호출
+    onCommentLoaded: (String) -> Unit
 ){
     val isLoading = remember { mutableStateOf(true) }
     val movie = remember { mutableStateOf<Movie?>(null) }
@@ -157,13 +165,17 @@ fun MovieInfoTab(
                 }
         }
     }
+
     // 2. 사용자 별점 및 코멘트 불러오기
     LaunchedEffect(docId) {
         user?.let {
+            isLoading.value = true
             val (fetchedRating, fetchedComment) = fetchUserRatingAndComment(it.uid, docId)
             userRating = fetchedRating // 사용자 별점 업데이트
             comment = fetchedComment // 사용자 코멘트 업데이트
             onRatingLoaded(fetchedRating) // 기존 별점 전달
+            onCommentLoaded(fetchedComment) // 기존 코멘트 전달
+            isLoading.value = false
         }
     }
 
@@ -173,12 +185,12 @@ fun MovieInfoTab(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator() // 로딩 중 표시
+            CircularProgressIndicator()
         }
     }
     else {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // 영화 목록 표시
+            // 영화 정보 및 별점 표시
             movie.value?.let { movie ->
                 MovieCard(
                     movie = movie,
@@ -202,19 +214,25 @@ fun CommentTab(
 ){
     Column(modifier = Modifier.padding(16.dp)) {
         TextField(
-            value = comment,
+            value = comment, // 기존의 코멘트 뜨도록
             onValueChange = onCommentChanged,
-            label = { Text("코멘트 작성") },
+            label = {
+                if (comment.isEmpty()) {
+                    Text("코멘트 작성") // 빈 코멘트일 때
+                } else {
+                    Text("코멘트 수정") // 기존 코멘트가 있을 때
+                }
+            },
             modifier = Modifier
-                .fillMaxWidth()   // 가로로 전체 크기 채우기
-                .height(200.dp)   // 높이 조절 (크게 만들기)
-                .padding(16.dp),  // 여백 추가
+                .fillMaxWidth() // 가로로 전체 크기 채우기
+                .height(200.dp) // 높이 조절
+                .padding(16.dp),
             keyboardActions = KeyboardActions(
                 onDone = {
                     // Done 버튼을 눌렀을 때의 처리
                 }
             ),
-            singleLine = false  // 여러 줄 입력을 허용
+            singleLine = false // 여러 줄 입력을 허용
         )
     }
 }
@@ -224,14 +242,15 @@ fun saveRatingAndComment(
     currentRating: Float,
     originalRating: Float,
     currentUser: FirebaseUser?,
-    comment: String
+    originalComment: String,
+    currentComment: String
 ){
     currentUser?.let {
         val firestore = FirebaseFirestore.getInstance()
         val userId = it.uid
         val userCollection = firestore.collection("user").document(userId)
 
-        if (comment.isNotEmpty()) {
+
             firestore.collection("movieRated")
                 .whereEqualTo("movie", movie.DOCID)
                 .whereEqualTo("userId", userId)
@@ -239,33 +258,66 @@ fun saveRatingAndComment(
                 .addOnSuccessListener { documents ->
                     // 기존 문서가 있으면 업데이트
                     if (!documents.isEmpty) {
-                        // 별점이 새로 부여됐다면 업데이트
-                        if(currentRating != originalRating){
+                        val existingDoc = documents.documents.first()
+
+                        // 업데이트할 데이터 준비
+                        val updatedData = mutableMapOf<String, Any>()
+                        if (currentRating != originalRating) {
+                            updatedData["score"] = currentRating
+                        }
+                        if (currentComment != originalComment) {
+                            updatedData["comment"] = currentComment
+                        }
+                        if (updatedData.isNotEmpty()) {
+                            updatedData["updatedTime"] = Timestamp.now()
+
+                            // Firestore 업데이트 호출
+                            firestore.collection("movieRated")
+                                .document(existingDoc.id)
+                                .update(updatedData)
+                                .addOnSuccessListener {
+                                    println("Rating and comment updated successfully.")
+                                }
+                                .addOnFailureListener { e ->
+                                    println("Failed to update rating or comment: ${e.message}")
+                                }
+                        }
+                            // 별점이 새로 부여됐다면 업데이트
+                        /*if(currentRating != originalRating){
                             val existingDoc = documents.documents.first()
                             firestore.collection("movieRated")
                                 .document(existingDoc.id)
                                 .update(
                                     "score", currentRating,
+                                    //"comment", comment, // comment 필드 추가
+                                    "updatedTime", Timestamp.now()
+                                )
+                        }
+                        // 코멘트가 새로 부여됐다면 업데이트
+                        if( existingDoc["comment"] != comment){
+                            firestore.collection("movieRated")
+                                .document(existingDoc.id)
+                                .update(
+                                    //"score", currentRating,
                                     "comment", comment, // comment 필드 추가
                                     "updatedTime", Timestamp.now()
                                 )
                         }
                         else{
-                            val existingDoc = documents.documents.first()
                             firestore.collection("movieRated")
                                 .document(existingDoc.id)
                                 .update(
                                     "comment", comment, // comment 필드 추가
                                     "updatedTime", Timestamp.now()
                                 )
-                        }
+                        }*/
                     }
                     else{
                         // 새 문서 생성
                         val newRating = hashMapOf(
                             "movie" to movie.DOCID,
                             "score" to currentRating,
-                            "comment" to comment, // comment 필드 추가
+                            "comment" to currentComment, // comment 필드 추가
                             "userId" to userId,
                             "updatedTime" to Timestamp.now()
                         )
@@ -286,65 +338,33 @@ fun saveRatingAndComment(
                             }
                     }
                 }
-        }
-        /*
-        // 기존 별점과 다를 경우만 Firestore에 업데이트
-        if (currentRating != originalRating || comment.isNotEmpty()) {
-            val data = mapOf(
-                "movie" to movie.DOCID,
-                "userId" to user.uid,
-                "score" to currentRating,
-                "comment" to comment,
-                "updatedTime" to Timestamp.now()
-            )
-
-            firestore.collection("movieRated")
-                .document("${user.uid}_${movie.DOCID}")
-                .set(data)
-        }
-    */
     }
 }
 
-// firestore에서 별점과 코멘트를 불러오는 함수
 suspend fun fetchUserRatingAndComment(userId: String, movieDocId: String?): Pair<Float, String> {
     return try {
-        movieDocId?.let {
-            // 1. user의 movieRatedList 확인
-            val userSnapshot = FirebaseFirestore.getInstance()
-                .collection("user")
-                .document(userId)
+        movieDocId?.let { docId ->
+            // Firestore 쿼리를 통해 userId와 movie가 일치하는 문서 찾기
+            val querySnapshot = FirebaseFirestore.getInstance()
+                .collection("movieRated")
+                .whereEqualTo("userId", userId) // userId와 일치하는 문서
+                .whereEqualTo("movie", docId) // movie와 일치하는 문서
                 .get()
                 .await()
 
-            val ratedMovieIds = userSnapshot.get("movieRatedList") as? List<String> ?: emptyList()
-
-            // 2. user의 movieRatedList에서 일치하는 문서ID 확인
-            val matchedDocId = ratedMovieIds.firstOrNull { ratedMovieId ->
-                val ratedDoc = FirebaseFirestore.getInstance()
-                    .collection("movieRated")
-                    .document(ratedMovieId)
-                    .get()
-                    .await()
-
-                ratedDoc.getString("movies") == movieDocId // 영화 DOCID와 일치하는지 비교
-            }
-
-            // 3. 별점 및 코멘트 불러오기
-            matchedDocId?.let {
-                val ratingSnapshot = FirebaseFirestore.getInstance()
-                    .collection("movieRated")
-                    .document(it)
-                    .get()
-                    .await()
-
-                val score = ratingSnapshot.getDouble("score")?.toFloat() ?: 0f
-                val comment = ratingSnapshot.getString("comment") ?: ""
+            // 일치하는 문서가 있는 경우
+            if (!querySnapshot.isEmpty) {
+                val document = querySnapshot.documents.first()
+                val score = document.getDouble("score")?.toFloat() ?: 0f
+                val comment = document.getString("comment") ?: ""
 
                 Pair(score, comment) // 별점과 코멘트를 반환
-            } ?: Pair(0f, "") // 일치하는 문서가 없을 경우 기본값 반환
-        } ?: Pair(0f, "") // `movieDocId`가 null일 경우 기본값 반환
+            } else {
+                Pair(0f, "") // 일치하는 문서가 없는 경우 기본값 반환
+            }
+        } ?: Pair(0f, "") // movieDocId가 null인 경우 기본값 반환
     } catch (e: Exception) {
+        e.printStackTrace() // 에러 로그 출력
         Pair(0f, "") // 에러 발생 시 기본값 반환
     }
 }

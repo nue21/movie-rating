@@ -378,7 +378,8 @@ private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
                         "movie" to movie.DOCID,
                         "score" to score,
                         "userId" to userId,
-                        "updatedTime" to Timestamp.now()
+                        "updatedTime" to Timestamp.now(),
+                        "comment" to ""
                     )
                     movieRatedCollection.add(newRating)
                         .addOnSuccessListener { documentReference ->
