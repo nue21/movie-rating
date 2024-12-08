@@ -48,9 +48,11 @@ import com.example.movierating.data.MovieRated
 import com.example.movierating.data.User
 import com.example.movierating.ui.profile.MovieCard
 import com.example.movierating.ui.profile.RatingTab
+import com.example.movierating.ui.profile.fetchMovieRatedFromFirestore
 import com.example.movierating.ui.profile.fetchMoviesFromFirestore
 import com.example.movierating.ui.signIn.UserData
 import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -118,7 +120,7 @@ fun RatePage(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = userData.value?.movieRatedList?.size.toString(), // 이게 계속 변했으면 좋겠어. 변수를 remember로 바꿔줘야 할까?
+                text = userData.value?.movieRatedList?.size.toString(), // 별점을 부여하면 곧바로 이 값이 바뀌게끔 구현하고 싶어
                 style = typography.displayMedium
             )
             Text(
@@ -126,50 +128,31 @@ fun RatePage(
                 style = typography.titleMedium
             )
             Spacer(modifier = Modifier.padding(bottom = 8.dp))
-            RateRandomTab()
+            RateRandomTab(userData = userData.value, onRatingUpdated = { updatedUserData ->
+                userData.value = updatedUserData
+            })
         }
     }
 }
 
 @Composable
-fun RateRandomTab(){
+fun RateRandomTab(userData: UserData?, onRatingUpdated: (UserData) -> Unit) {
     val movies = remember { mutableStateOf<List<Movie>>(emptyList()) }
+    val movieRated = remember { mutableStateOf<List<MovieRated>>(emptyList()) }
     val isLoading = remember { mutableStateOf(true) }
     val showComments = remember { mutableStateOf(false) } // 코멘트 표시 여부입니다
     val coroutineScope = rememberCoroutineScope()
 
     val user = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
-    val userData = remember { mutableStateOf<UserData?>(null) }
 
-    LaunchedEffect(user) {
-        user?.let {
-            val userId = it.uid
-            // Firestore에서 해당 userId로 문서 조회
-            db.collection("user")
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener { documents ->
-                    if (!documents.isEmpty) {
-                        // 첫 번째 문서를 UserData 객체로 변환
-                        val document = documents.documents.first()
-                        userData.value = document.toObject(UserData::class.java)
-                    } else {
-                        Log.d("Firestore", "No matching user found")
-                    }
-                }
-                .addOnFailureListener { e ->
-                    Log.e("Firestore", "Error querying user data", e)
-                }
-        }
-    }
-
-
-        // 데이터 로드: Firestore에서 영화 데이터를 가져옴
+    // 데이터 로드: Firestore에서 영화 데이터를 가져옴
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             val fetchedMovies = fetchMoviesFromFirestore() // Firestore에서 영화 목록 가져오기
+            val fetchedMovieRated = fetchMovieRatedFromFirestore()
             movies.value = fetchedMovies
+            movieRated.value = fetchedMovieRated
             isLoading.value = false // 데이터 로드 완료 후 로딩 상태 해제
         }
     }
@@ -187,25 +170,40 @@ fun RateRandomTab(){
             // 영화 목록 표시
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(movies.value) { movie ->
-                    // 별점 상태를 별도로 관리
-                    var rating by remember { mutableStateOf(0f) }
-                    MovieCard(
-                        movie = movie,
-                        rating = rating,
-                        showComments = showComments.value, // 코멘트 표시 여부 전달
-                        onRatingChanged = { newRating ->
-                            rating = newRating
-                            saveRating(movie, newRating, userData.value, db)
-                        },
-                        comment = ""
-                    )
+                    // 이미 평가한 영화인지 확인
+                    val isMovieRated = movieRated.value.any { it.movie == movie.DOCID }
+
+                    // 영화가 이미 평가된 경우 MovieCard를 표시하지 않음
+                    if (!isMovieRated) {
+                        // 별점 상태를 별도로 관리
+                        var rating by remember { mutableStateOf(0f) }
+                        MovieCard(
+                            movie = movie,
+                            rating = rating,
+                            showComments = showComments.value, // 코멘트 표시 여부 전달
+                            onRatingChanged = { newRating ->
+                                rating = newRating
+                                saveRating(movie, newRating, userData, db) { updatedUserData ->
+                                    // 별점 저장 후 userData를 갱신
+                                    onRatingUpdated(updatedUserData)
+                                }
+                            },
+                            comment = ""
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun saveRating(movie: Movie, score: Float, userData: UserData?, db: FirebaseFirestore) {
+private fun saveRating(
+    movie: Movie,
+    score: Float,
+    userData: UserData?,
+    db: FirebaseFirestore,
+    onUserDataUpdated: (UserData) -> Unit
+) {
     // Firestore 컬렉션 이름
     val movieRatedCollection = db.collection("movieRated")
 
@@ -220,12 +218,15 @@ private fun saveRating(movie: Movie, score: Float, userData: UserData?, db: Fire
                 val existingDoc = documents.documents.first()
                 val updatedData = mapOf(
                     "score" to score.toDouble(),
-                    "updatedTime" to LocalDateTime.now()
+                    "updatedTime" to Timestamp.now()
                 )
                 // 기존 문서 업데이트
                 movieRatedCollection.document(existingDoc.id).update(updatedData)
                     .addOnSuccessListener {
                         Log.d("Firestore", "MovieRated updated successfully")
+
+                        // UserData의 movieRatedList 업데이트
+                        updateUserMovieRatedList(userData, db, onUserDataUpdated)
                     }
                     .addOnFailureListener { e ->
                         Log.e("Firestore", "Error updating MovieRated", e)
@@ -236,8 +237,8 @@ private fun saveRating(movie: Movie, score: Float, userData: UserData?, db: Fire
                     MovieRated(
                         movie = movie.DOCID,
                         score = score.toDouble(),
-                        comment = null,
-                        updatedTime = LocalDateTime.now(),
+                        comment = "",
+                        updatedTime = Timestamp.now(),
                         userId = it.userId
                     )
                 }
@@ -248,32 +249,7 @@ private fun saveRating(movie: Movie, score: Float, userData: UserData?, db: Fire
                             Log.d("Firestore", "MovieRated saved with ID: ${documentReference.id}")
 
                             // UserData의 movieRatedList 업데이트
-                            val userDocRef = db.collection("user").document(userData?.userId ?: "")
-
-                            // 기존 User 데이터를 가져와서 movieRatedList 업데이트
-                            userDocRef.get()
-                                .addOnSuccessListener { userDocument ->
-                                    if (userDocument.exists()) {
-                                        val currentMovieRatedList = userDocument.get("movieRatedList") as? List<String> ?: mutableListOf()
-
-                                        // 기존 리스트에 새 document id 추가
-                                        val updatedMovieRatedList = currentMovieRatedList.toMutableList()
-                                        updatedMovieRatedList.add(documentReference.id)
-
-                                        // User의 movieRatedList 업데이트
-                                        val userUpdate = mapOf("movieRatedList" to updatedMovieRatedList)
-                                        userDocRef.update(userUpdate)
-                                            .addOnSuccessListener {
-                                                Log.d("Firestore", "UserData updated successfully")
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Log.e("Firestore", "Error updating UserData", e)
-                                            }
-                                    }
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e("Firestore", "Error fetching user data", e)
-                                }
+                            updateUserMovieRatedList(userData, db, onUserDataUpdated)
                         }
                         .addOnFailureListener { e ->
                             Log.e("Firestore", "Error saving MovieRated", e)
@@ -286,4 +262,39 @@ private fun saveRating(movie: Movie, score: Float, userData: UserData?, db: Fire
         }
 }
 
+private fun updateUserMovieRatedList(
+    userData: UserData?,
+    db: FirebaseFirestore,
+    onUserDataUpdated: (UserData) -> Unit
+) {
+    val userDocRef = db.collection("user").document(userData?.userId ?: "")
+
+    // 기존 User 데이터를 가져와서 movieRatedList 업데이트
+    userDocRef.get()
+        .addOnSuccessListener { userDocument ->
+            if (userDocument.exists()) {
+                val currentMovieRatedList = userDocument.get("movieRatedList") as? List<String> ?: mutableListOf()
+
+                // 기존 리스트에 새 document id 추가
+                val updatedMovieRatedList = currentMovieRatedList.toMutableList()
+                updatedMovieRatedList.add(userDocument.id)
+
+                // User의 movieRatedList 업데이트
+                val userUpdate = mapOf("movieRatedList" to updatedMovieRatedList)
+                userDocRef.update(userUpdate)
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "UserData updated successfully")
+
+                        // 갱신된 UserData 반환
+                        userData?.let { it1 -> onUserDataUpdated(it1.copy(movieRatedList = updatedMovieRatedList)) }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Error updating UserData", e)
+                    }
+            }
+        }
+        .addOnFailureListener { e ->
+            Log.e("Firestore", "Error fetching user data", e)
+        }
+}
 

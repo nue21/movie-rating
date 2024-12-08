@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -40,6 +41,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.movierating.R
+import com.example.movierating.data.Movie
+import com.example.movierating.ui.movieInfo.MovieViewModel
 import com.example.movierating.ui.signIn.UserData
 import com.example.movierating.ui.user.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -53,19 +56,14 @@ import com.google.firebase.auth.FirebaseAuth
 fun HomePage (
     modifier: Modifier = Modifier,
     onSignOut: () -> Unit,
+    goToDetailPage: (String) -> Unit,
     goToWorldCupPage: () -> Unit,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    movieViewModel: MovieViewModel = hiltViewModel()
     ) {
-    val movieImgUrls = arrayOf(
-        "http://file.koreafilm.or.kr/thm/02/99/18/55/tn_DPK022735.jpg",
-        "http://file.koreafilm.or.kr/thm/02/99/18/51/tn_DPF029805.jpg",
-        "http://file.koreafilm.or.kr/thm/02/99/18/50/tn_DPF029783.jpg",
-        "http://file.koreafilm.or.kr/thm/02/99/18/46/tn_DPF029705.jpg",
-        "http://file.koreafilm.or.kr/thm/02/99/18/43/tn_DPF029352.jpg",
-        "http://file.koreafilm.or.kr/thm/02/99/18/37/tn_DPF029035.jpg"
-    )
 
     val userData = userViewModel.userData.value
+    val moviesByGenre = movieViewModel.moviesByGenre.observeAsState(emptyMap())
 
     Column (
         modifier = modifier
@@ -74,29 +72,11 @@ fun HomePage (
     ) {
         // profile에 들어가야할 부분인데 merge하면서 겹칠까봐 일단은 home에 만들어뒀습니다.
         // 불러오는 방법 참고하셔서 profile에 적용시키면 될 것 같아요.
-        if(userData?.profilePictureUrl != null) {
-            AsyncImage(
-                model = userData.profilePictureUrl,
-                contentDescription = "Profile picture",
-                modifier = Modifier
-                    .size(150.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        if(userData?.username != null) {
-            Text(
-                text = userData.username,
-                fontSize = 36.sp
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        // |_> 삭제했습니다.
 
         Button(onClick = onSignOut) {
             Text(text = "Sign out")
         }
-
         /////////////////////////////////////////////////////////
 
         AdBanner()
@@ -107,8 +87,13 @@ fun HomePage (
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             WorldCupButton(onClickWorldCup = goToWorldCupPage)
-            MovieSlidingList(title = "최신 개봉작", imgUrls = movieImgUrls)
-            MovieSlidingList(title = "최근 조회한 영화", imgUrls = movieImgUrls)
+            moviesByGenre.value.forEach { (genre, movies) ->
+                MovieSlidingList(
+                    title = genre,
+                    movies = movies,
+                    onMovieClick = { selectedMovie -> goToDetailPage(selectedMovie.DOCID) }
+                )
+            }
         }
     }
 }
@@ -144,7 +129,8 @@ fun AdBanner () {
 @Composable
 fun MovieSlidingList (
     title: String,
-    imgUrls: Array<String>
+    movies: List<Movie>,
+    onMovieClick: (Movie) -> Unit
 ) {
     Column (
         verticalArrangement = Arrangement.spacedBy(15.dp)
@@ -159,12 +145,13 @@ fun MovieSlidingList (
         LazyRow (
             horizontalArrangement = Arrangement.spacedBy(15.dp)
         ) {
-            items(imgUrls) { url ->
+            items(movies) { movie ->
                 Card (
                     modifier = Modifier
+                        .clickable { onMovieClick(movie) }
                 ) {
                     Image(
-                        painter = rememberAsyncImagePainter(url),
+                        painter = rememberAsyncImagePainter(movie.posters),
                         contentDescription = "movie",
                         modifier = Modifier
                             .size(86.dp, 123.dp),
