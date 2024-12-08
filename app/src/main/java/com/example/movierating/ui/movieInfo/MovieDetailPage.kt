@@ -371,7 +371,8 @@ private fun saveRating(movie: Movie, score: Float, user: FirebaseUser?) {
                         "score", score,
                         "updatedTime", Timestamp.now()
                     )
-                } else {
+                }
+                else {
                     // 새 문서 생성
                     val newRating = hashMapOf(
                         "movie" to movie.DOCID,
