@@ -23,6 +23,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,7 +42,9 @@ import androidx.navigation.NavController
 import com.example.movierating.R
 import com.example.movierating.data.Movie
 import com.example.movierating.data.MovieRated
+import com.example.movierating.ui.signIn.UserData
 import com.example.movierating.ui.user.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -53,11 +56,15 @@ fun WorldCupPage (
     worldCupViewModel: WordlCupViewModel
 ) {
     var isLoading by remember {  mutableStateOf(true)  }
-    val userMovieRated: List<String>? = userViewModel.userData.value?.movieRatedList
+    val userData by userViewModel.userData.observeAsState() // LiveData를 State로 변환
+    val userMovieRated = userData?.movieRatedList
     val worldCupMovies = remember { mutableStateOf<List<WorldCupMovie>>(emptyList()) }
     val roundList: List<Int> = listOf(16, 32, 64)
 
+
     LaunchedEffect(userMovieRated) {
+        println(userMovieRated)
+        isLoading = true
         if (userMovieRated.isNullOrEmpty()){
             isLoading = false
             return@LaunchedEffect
@@ -65,7 +72,6 @@ fun WorldCupPage (
 
         try {
             val fetchedMovies = userMovieRated.mapNotNull { movieRatedId ->
-
                 fetchWorldCupMovie(movieRatedId)
             }
 
@@ -76,7 +82,6 @@ fun WorldCupPage (
             isLoading = false
         }
     }
-
 
     Scaffold(
             modifier = Modifier.fillMaxSize(),

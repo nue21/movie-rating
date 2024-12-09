@@ -170,7 +170,7 @@ fun MovieInfoContent(
                     onClick = { navController.popBackStack() },
                     modifier = Modifier.padding(vertical = 12.dp)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back")
                 }
             },
             backgroundColor = Color.Transparent,

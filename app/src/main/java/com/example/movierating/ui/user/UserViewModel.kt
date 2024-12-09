@@ -1,5 +1,6 @@
 package com.example.movierating.ui.user
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -71,10 +72,40 @@ class UserRepository @Inject constructor(
 class UserViewModel @Inject constructor(
     private val repository: UserRepository
 ) : ViewModel() {
+    private val user = FirebaseAuth.getInstance().currentUser
+    private val db  = FirebaseFirestore.getInstance().collection("user")
     private val _userData: MutableLiveData<UserData?> = MutableLiveData(null)
     val userData: LiveData<UserData?> get() = _userData
     init {
-        loadUserData()
+        // 로그인 상태 변화 감지
+        observeAuthState()
+    }
+
+    private fun observeAuthState() {
+        user?.let { currentUser ->
+            db.document(currentUser.uid)
+                .addSnapshotListener { documentSnapshot, exception ->
+                    if (exception != null) {
+                        Log.e("UserViewModel", "Failed to listen for user data updates", exception)
+                        return@addSnapshotListener
+                    }
+
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        val userData = documentSnapshot.toObject(UserData::class.java)
+
+                        _userData.value = user.run {
+                            UserData(
+                                userId = uid,
+                                username = userData?.username ?: displayName,
+                                profilePictureUrl = userData?.profilePictureUrl ?: photoUrl?.toString(),
+                                collectionList = userData?.collectionList ?: emptyList(),
+                                movieRatedList = userData?.movieRatedList ?: emptyList(),
+                                wishList = userData?.wishList ?: emptyList()
+                            )
+                        }
+                    }
+                }
+        }
     }
 
     private fun loadUserData() {
@@ -83,6 +114,7 @@ class UserViewModel @Inject constructor(
             try {
                 // 실제 데이터를 로딩하는 로직
                 _userData.value = repository.getCurrentUserData()
+                println("변경된 사용자 정보 "+_userData.value)
             } catch (e: Exception) {
                 // 예외 처리
                 e.printStackTrace()

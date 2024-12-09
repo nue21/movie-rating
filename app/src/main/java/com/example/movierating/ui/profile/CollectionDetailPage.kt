@@ -166,10 +166,7 @@ fun CollectionDetailPage(
                 }
                 Text(text = collectionData.value?.collectionName.toString(), style = MaterialTheme.typography.titleLarge)
                 IconButton(onClick = { /* 수정 동작 */ }) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "컬렉션 편집"
-                    )
+
                 }
             }
             // 영화 목록 표시

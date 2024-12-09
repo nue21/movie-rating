@@ -81,7 +81,7 @@ fun AddCommentPage(
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Default.ExitToApp,
+                    imageVector = Icons.AutoMirrored.Default.ArrowBack,
                     contentDescription = "뒤로가기"
                 )
             }
