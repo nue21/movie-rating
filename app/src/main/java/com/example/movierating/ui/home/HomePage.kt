@@ -55,14 +55,11 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun HomePage (
     modifier: Modifier = Modifier,
-    onSignOut: () -> Unit,
     goToDetailPage: (String) -> Unit,
     goToWorldCupPage: () -> Unit,
     userViewModel: UserViewModel = hiltViewModel(),
     movieViewModel: MovieViewModel = hiltViewModel()
     ) {
-
-    val userData = userViewModel.userData.value
     val moviesByGenre = movieViewModel.moviesByGenre.observeAsState(emptyMap())
 
     Column (
@@ -70,15 +67,6 @@ fun HomePage (
             .fillMaxSize()
             .verticalScroll(rememberScrollState()) // 스크롤 가능하게 설정
     ) {
-        // profile에 들어가야할 부분인데 merge하면서 겹칠까봐 일단은 home에 만들어뒀습니다.
-        // 불러오는 방법 참고하셔서 profile에 적용시키면 될 것 같아요.
-        // |_> 삭제했습니다.
-
-        Button(onClick = onSignOut) {
-            Text(text = "Sign out")
-        }
-        /////////////////////////////////////////////////////////
-
         AdBanner()
         Column (
             modifier = Modifier
@@ -109,7 +97,7 @@ fun AdBanner () {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "app logo",
+            text = "CineFeel",
             style = TextStyle(
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
@@ -134,6 +122,7 @@ fun MovieSlidingList (
     onMovieClick: (Movie) -> Unit
 ) {
     Column (
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         Text(

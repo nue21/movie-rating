@@ -115,18 +115,6 @@ class MainActivity : ComponentActivity() {
                         val coroutineScope = rememberCoroutineScope()
 
                         MainNavHost(
-                            onSignOut = {
-                                lifecycleOwner.lifecycleScope.launch {
-                                    userViewModel.resetUserData()   // userData -> null
-                                    Toast.makeText(
-                                        context,
-                                        "Signed out",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-
-                                    navController.navigate("signIn")   // 화면 이동
-                                }
-                            },
                             userViewModel
                         )
                         /*
@@ -160,7 +148,6 @@ class MainActivity : ComponentActivity() {
 @RequiresApi(35)
 @Composable
 fun MainNavHost (
-    onSignOut: () -> Unit,
     userViewModel: UserViewModel
 ) {
     val navController = rememberNavController()
@@ -182,7 +169,7 @@ fun MainNavHost (
         }
     ) { innerPadding ->
         NavHost(navController = navController, startDestination = "home") {
-            homeGraph(navController, Modifier.padding(innerPadding), onSignOut, userViewModel, worldCupViewModel)
+            homeGraph(navController, Modifier.padding(innerPadding), userViewModel, worldCupViewModel)
             searchGraph(navController, Modifier.padding(innerPadding), searchViewModel)
             rateGraph(navController, Modifier.padding(innerPadding))
             profileGraph(navController, Modifier.padding(innerPadding))
@@ -194,14 +181,12 @@ fun MainNavHost (
 fun NavGraphBuilder.homeGraph(
     navController: NavHostController,   
     modifier: Modifier, 
-    onSignOut: () -> Unit,
     userViewModel: UserViewModel,
     worldCupViewModel:WordlCupViewModel
 ) {
     composable("home") {
         HomePage(
             modifier,
-            onSignOut,
             goToWorldCupPage = { navController.navigate("worldCup") },
             goToDetailPage = { docId ->
                 navController.navigate("movieDetail/$docId"){
