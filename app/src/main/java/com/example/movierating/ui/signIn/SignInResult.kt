@@ -36,7 +36,7 @@ fun saveUserData() {
                     // 문서가 존재하지 않으면 새로 생성
                     val userData = UserData(
                         userId = userId,
-                        username = "영린이",   // 예시로 하드코딩된 값, 실제 앱에서는 입력받은 값
+                        username = currentUser.displayName,
                         profilePictureUrl = currentUser.photoUrl?.toString(),
                         collectionList = emptyList(),  // 예시
                         wishList = emptyList(),       // 예시
