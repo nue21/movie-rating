@@ -55,22 +55,30 @@ fun WorldCupPage (
     var isLoading by remember {  mutableStateOf(true)  }
     val userMovieRated: List<String>? = userViewModel.userData.value?.movieRatedList
     val worldCupMovies = remember { mutableStateOf<List<WorldCupMovie>>(emptyList()) }
-
-    LaunchedEffect(userMovieRated) {
-        if (userMovieRated.isNullOrEmpty()) return@LaunchedEffect
-
-        val fetchedMovies = userMovieRated.mapNotNull { movieRatedId ->
-
-            fetchWorldCupMovie(movieRatedId)
-        }
-
-        worldCupMovies.value = fetchedMovies
-        isLoading = false
-    }
     val roundList: List<Int> = listOf(16, 32, 64)
 
+    LaunchedEffect(userMovieRated) {
+        if (userMovieRated.isNullOrEmpty()){
+            isLoading = false
+            return@LaunchedEffect
+        }
 
-        Scaffold(
+        try {
+            val fetchedMovies = userMovieRated.mapNotNull { movieRatedId ->
+
+                fetchWorldCupMovie(movieRatedId)
+            }
+
+            worldCupMovies.value = fetchedMovies
+        }catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+
+    Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
